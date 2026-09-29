@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>AirDrop · {{ALIAS}}</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--text:#1c1c1e;--muted:#6e6e73;--line:#e5e5ea;--accent:#007aff;--ok:#34c759;--err:#ff3b30}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--text:#f5f5f7;--muted:#98989d;--line:#38383a;--accent:#0a84ff;--ok:#30d158;--err:#ff453a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.4 -apple-system,system-ui,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:520px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+.icon{width:72px;height:72px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(#3aa0ff,#0a6cff);display:grid;place-items:center}
+h1{margin:0;text-align:center;font-size:24px}
+.sub{margin:2px 0 22px;text-align:center;color:var(--muted);font-size:15px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px}
+h2{margin:0 0 4px;font-size:17px}
+p{margin:0 0 12px;color:var(--muted);font-size:15px}
+.btn{display:block;text-align:center;padding:13px;border-radius:12px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+.btn.off{opacity:.5;pointer-events:none}
+.status{margin-top:10px;font-size:15px;min-height:1.4em}
+.status.ok{color:var(--ok)}.status.err{color:var(--err)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+li a{flex:1;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+li span{color:var(--muted);font-size:14px}
+.foot{text-align:center;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <div class="icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M16.247 7.761a6 6 0 0 1 0 8.478"/><path d="M19.075 4.933a10 10 0 0 1 0 14.134"/><path d="M4.925 19.067a10 10 0 0 1 0-14.134"/><path d="M7.753 16.239a6 6 0 0 1 0-8.478"/><circle cx="12" cy="12" r="2"/></svg></div>
+  <h1>{{ALIAS}}</h1>
+  <p class="sub">AirDrop de Ajustes</p>
+
+  <section class="card">
+    <h2>Mandar a la PC</h2>
+    <p>Elegí fotos, videos o archivos. En la PC te van a preguntar si los aceptás.</p>
+    <label class="btn" id="pick-label"><input id="pick" type="file" multiple hidden>Elegir archivos</label>
+    <div class="bar" id="bar" hidden><i id="fill"></i></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>Bajar de la PC</h2>
+    <ul id="list"></ul>
+    <p id="empty">La PC todavía no compartió nada. En Ajustes → AirDrop tocá «Compartir con el celular…».</p>
+  </section>
+
+  <p class="foot">Funciona mientras estés en la misma red Wi‑Fi y AirDrop siga prendido en la PC.</p>
+</main>
+<script>
+const K = "{{KEY}}";
+const ua = navigator.userAgent;
+const alias = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : "Navegador";
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n < 1024 ? n + " B" : n < 1048576 ? Math.round(n / 1024) + " KB"
+  : n < 1073741824 ? (n / 1048576).toFixed(1) + " MB" : (n / 1073741824).toFixed(2) + " GB";
+
+function say(text, kind) { const s = $("status"); s.textContent = text; s.className = "status " + (kind || ""); }
+
+$("pick").addEventListener("change", async (event) => {
+  const files = [...event.target.files];
+  event.target.value = "";
+  if (!files.length) return;
+  $("pick-label").classList.add("off");
+  try { await send(files); } catch (err) { say(err.message || "Algo falló.", "err"); }
+  $("pick-label").classList.remove("off");
+  $("bar").hidden = true;
+});
+
+async function send(files) {
+  const map = {};
+  files.forEach((f, i) => {
+    map["f" + i] = { id: "f" + i, fileName: f.name || ("archivo-" + i), size: f.size, fileType: f.type || "application/octet-stream" };
+  });
+  const total = files.reduce((sum, f) => sum + f.size, 0) || 1;
+  say("Esperando que aceptes en la PC…");
+  const res = await fetch("/api/localsend/v2/prepare-upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ info: { alias, version: "2.0", deviceModel: alias, deviceType: "web", fingerprint: "web-" + alias }, files: map }),
+  });
+  if (res.status === 403) throw new Error("En la PC no lo aceptaron (o no contestaron a tiempo).");
+  if (res.status === 409) throw new Error("La PC está ocupada con otra transferencia. Probá en un rato.");
+  if (!res.ok) throw new Error("La PC respondió " + res.status + ".");
+  const { sessionId, files: tokens } = await res.json();
+  let done = 0;
+  $("bar").hidden = false;
+  for (let i = 0; i < files.length; i++) {
+    say("Enviando " + (i + 1) + " de " + files.length + "…");
+    const url = "/api/localsend/v2/upload?sessionId=" + sessionId + "&fileId=f" + i + "&token=" + tokens["f" + i];
+    await upload(url, files[i], (n) => { $("fill").style.width = ((done + n) / total * 100) + "%"; });
+    done += files[i].size;
+  }
+  say(files.length === 1 ? "Listo: archivo enviado." : "Listo: " + files.length + " archivos enviados.", "ok");
+}
+
+function upload(url, file, progress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => progress(e.loaded);
+    xhr.onload = () => xhr.status === 200 ? resolve() : reject(new Error("Se cortó al mandar «" + file.name + "» (" + xhr.status + ")."));
+    xhr.onerror = () => reject(new Error("Se perdió la conexión con la PC."));
+    xhr.send(file);
+  });
+}
+
+async function refresh() {
+  try {
+    const res = await fetch("/web/files?k=" + K, { cache: "no-store" });
+    if (!res.ok) return;
+    const items = await res.json();
+    const list = $("list");
+    list.textContent = "";
+    for (const item of items) {
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = "/web/download?k=" + K + "&i=" + item.index;
+      link.textContent = item.name;
+      const size = document.createElement("span");
+      size.textContent = fmt(item.size);
+      li.append(link, size);
+      list.append(li);
+    }
+    $("empty").hidden = items.length > 0;
+  } catch (_) {}
+}
+refresh();
+setInterval(refresh, 4000);
+</script>
+</body>
+</html>

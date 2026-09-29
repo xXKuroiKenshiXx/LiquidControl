@@ -1,0 +1,180 @@
+// Lista del motor de ajustes (tweaks): secciones, ícono gris por opción, riesgo,
+// estado real leído del sistema, qué hace exactamente cada ajuste y aviso
+// cuando hace falta reiniciar.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { Button, Row, Section } from "basics.slint";
+import { AdminNotice } from "notice.slint";
+import { Glyphs } from "glyphs.slint";
+
+export struct TweakView {
+    id: string,
+    title: string,
+    description: string,
+    // 0 = seguro, 1 = moderado, 2 = avanzado
+    risk: int,
+    admin: bool,
+    // 0 = desactivado, 1 = activado, 2 = parcial
+    state: int,
+    busy: bool,
+    // Qué cambia en el sistema, una operación por línea.
+    details: string,
+    // Índice en Glyphs.all (-1 = sin ícono)
+    icon: int,
+}
+
+export struct TweakSection {
+    title: string,
+    items: [TweakView],
+}
+
+export struct TweakCategory {
+    sections: [TweakSection],
+    admin: bool,
+}
+
+export global TweaksState {
+    in property <TweakCategory> privacy;
+    in property <TweakCategory> desktop;
+    in property <TweakCategory> optimize;
+    in property <TweakCategory> gaming;
+    in property <TweakCategory> accessibility;
+    in property <TweakCategory> updates;
+    // Reinicio pendiente: 0 = ninguno, 1 = Explorador, 2 = cerrar sesión, 3 = reiniciar la PC
+    in property <int> restart;
+    callback set(string, bool);
+    callback copy-details(string);
+}
+
+// Un ajuste con su interruptor y, al pedirlo, el detalle técnico de lo que hace.
+component TweakRow {
+    in property <TweakView> tweak;
+    in property <bool> first;
+    property <bool> expanded: false;
+
+    VerticalLayout {
+        Row {
+            first: root.first;
+            label: root.tweak.title;
+            sub: root.tweak.description;
+            highlighted: Nav.highlight == root.tweak.id;
+            has-glyph: root.tweak.icon >= 0;
+            glyph: Glyphs.all[max(0, root.tweak.icon)];
+            badge: root.tweak.risk == 1 ? @tr("Moderado") : root.tweak.risk == 2 ? @tr("Avanzado") : "";
+            badge-tone: root.tweak.risk == 2 ? Theme.danger : Theme.warning;
+            badge2: root.tweak.state == 2 ? @tr("Parcial") : "";
+            info: true;
+            info-active: root.expanded;
+            info-tooltip: root.expanded ? @tr("Ocultar qué cambia en el sistema.") : @tr("Ver qué cambia en el sistema.");
+            toggle: true;
+            checked: root.tweak.state == 1;
+            toggle-enabled: !root.tweak.admin || App.admin;
+            toggled(value) => { TweaksState.set(root.tweak.id, value); }
+            info-clicked => { root.expanded = !root.expanded; }
+        }
+        // Detalle: cada operación en su línea; si es largo, se desplaza dentro de la caja.
+        if root.expanded: Rectangle {
+            background: Theme.field;
+            VerticalLayout {
+                padding: 10px;
+                padding-left: 44px;
+                spacing: 4px;
+                HorizontalLayout {
+                    Text {
+                        text: @tr("Qué cambia en el sistema");
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: Theme.label2;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: @tr("Copiar");
+                        small: true;
+                        clicked => { TweaksState.copy-details(root.tweak.id); }
+                    }
+                }
+                Rectangle {
+                    height: min(200px, lines.preferred-height + 4px);
+                    scroll := ScrollView {
+                        viewport-height: lines.preferred-height + 4px;
+                        lines := Text {
+                            y: 2px;
+                            width: scroll.visible-width - 8px;
+                            text: root.tweak.details;
+                            font-family: "Consolas";
+                            font-size: 11px;
+                            color: Theme.label2;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Cápsula de vidrio que avisa qué hay que reiniciar para ver los cambios.
+component RestartBanner inherits Rectangle {
+    min-height: 40px;
+    border-radius: 20px;
+    background: @linear-gradient(180deg, Theme.glass-top 0%, Theme.glass-bottom 100%);
+    border-width: 1px;
+    border-color: Theme.glass-rim;
+    drop-shadow-blur: Theme.glass-blur;
+    drop-shadow-color: Theme.shadow;
+    drop-shadow-offset-y: 4px;
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 7px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: @image-url("../icons/rotate-cw.svg");
+                width: 14px;
+                height: 14px;
+                colorize: Theme.label;
+            }
+        }
+        Text {
+            text: TweaksState.restart == 1 ? @tr("Algunos cambios se ven después de reiniciar el Explorador.")
+                : TweaksState.restart == 2 ? @tr("Algunos cambios se aplican al cerrar sesión y volver a entrar.")
+                : @tr("Algunos cambios se aplican después de reiniciar la PC.");
+            font-size: 12px;
+            color: Theme.label;
+            vertical-alignment: center;
+            wrap: word-wrap;
+            horizontal-stretch: 1;
+        }
+        if TweaksState.restart == 1: VerticalLayout {
+            alignment: center;
+            Button {
+                text: @tr("Reiniciar Explorador");
+                primary: true;
+                small: true;
+                clicked => { App.restart-explorer(); }
+            }
+        }
+    }
+}
+
+export component TweakList {
+    in property <TweakCategory> category;
+    VerticalLayout {
+        spacing: 22px;
+        for section in root.category.sections: Section {
+            title: section.title;
+            for tweak[i] in section.items: TweakRow {
+                tweak: tweak;
+                first: i == 0;
+            }
+        }
+        if TweaksState.restart > 0: RestartBanner { }
+        if root.category.admin && !App.admin: AdminNotice { }
+    }
+}

@@ -1,0 +1,198 @@
+// Panel Pantallas: distribución, resolución, frecuencia, escala, HDR y brillo.
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, PopupRow, Row, Section, SliderRow } from "../widgets/basics.slint";
+
+export struct ScreenView {
+    name: string,
+    primary: bool,
+    // Posición y tamaño ya escalados al dibujo, en px lógicos.
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+}
+
+export global DisplaysState {
+    in property <bool> loaded;
+    in property <[ScreenView]> screens;
+    in property <float> canvas-width;
+    in property <float> canvas-height;
+    in property <int> selected;
+    in property <string> name;
+    in property <[string]> resolutions;
+    in property <int> resolution;
+    in property <[string]> rates;
+    in property <int> rate;
+    in property <int> scale;
+    in property <bool> has-brightness;
+    in property <float> brightness;
+    // HDR: si el monitor lo admite y si está activado.
+    in property <bool> hdr-supported;
+    in property <bool> hdr;
+    // Luz nocturna: se controla nativa acá adentro (nada de solo un enlace a
+    // Configuración). Si el formato de este Windows no es compatible,
+    // `night-light-supported` queda en false y se muestra el enlace nomás.
+    in property <bool> night-light-supported;
+    in property <bool> night-light;
+    in property <float> night-light-strength;
+    callback select(int);
+    callback set-resolution(int);
+    callback set-rate(int);
+    callback brightness-moved(float);
+    callback set-hdr(bool);
+    callback set-night-light(bool);
+    callback night-light-strength-moved(float);
+}
+
+// Distribución de los monitores, como en Ajustes del Sistema.
+component Arrangement inherits Rectangle {
+    height: DisplaysState.canvas-height * 1px + 44px;
+    border-radius: Theme.radius-group;
+    background: @linear-gradient(180deg, Theme.group-top 0%, Theme.group 70%);
+    border-width: 1px;
+    border-color: Theme.group-border;
+    for screen[i] in DisplaysState.screens: Rectangle {
+        x: (parent.width - DisplaysState.canvas-width * 1px) / 2 + screen.x * 1px;
+        y: 22px + screen.y * 1px;
+        width: screen.width * 1px;
+        height: screen.height * 1px;
+        border-radius: 6px;
+        clip: true;
+        background: @linear-gradient(145deg, #4da6ff 0%, #7d6bff 100%);
+        border-width: i == DisplaysState.selected ? 2.5px : 1px;
+        border-color: i == DisplaysState.selected ? Theme.accent : #ffffff40;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: #00000033;
+        drop-shadow-offset-y: 2px;
+        accessible-role: button;
+        accessible-label: screen.name;
+        transform-scale-x: touch.pressed ? 1 - Theme.squish : 1;
+        transform-scale-y: touch.pressed ? 1 - Theme.squish : 1;
+        animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        if screen.primary: Rectangle {
+            y: 0;
+            height: 5px;
+            background: #ffffffbf;
+        }
+        Text {
+            width: parent.width - 12px;
+            text: screen.name;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+        touch := TouchArea {
+            clicked => { DisplaysState.select(i); }
+        }
+    }
+}
+
+export component DisplaysPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/monitor.svg");
+            tint: Tints.blue;
+            title: @tr("Pantallas");
+            description: @tr("Resolución, frecuencia de actualización, HDR y brillo de tus monitores.");
+        }
+        if DisplaysState.loaded && DisplaysState.screens.length > 0: Arrangement { }
+        if DisplaysState.loaded && DisplaysState.screens.length > 0: Section {
+            title: DisplaysState.name;
+            footer: DisplaysState.has-brightness ? "" : @tr("El brillo de este monitor no se puede controlar: activá DDC/CI en el menú del monitor si lo tiene.");
+            PopupRow {
+                first: true;
+                label: @tr("Resolución");
+                options: DisplaysState.resolutions;
+                selected: DisplaysState.resolution;
+                activated(index) => { DisplaysState.set-resolution(index); }
+            }
+            PopupRow {
+                label: @tr("Frecuencia de actualización");
+                options: DisplaysState.rates;
+                selected: DisplaysState.rate;
+                activated(index) => { DisplaysState.set-rate(index); }
+            }
+            Row {
+                label: @tr("Escala");
+                value: DisplaysState.scale + " %";
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:display"); }
+            }
+            if DisplaysState.hdr-supported: Row {
+                label: "HDR";
+                sub: @tr("Más brillo y colores más vivos en juegos y videos compatibles.");
+                highlighted: Nav.highlight == "hdr";
+                toggle: true;
+                checked: DisplaysState.hdr;
+                toggled(value) => { DisplaysState.set-hdr(value); }
+            }
+            if DisplaysState.has-brightness: SliderRow {
+                label: @tr("Brillo");
+                value: DisplaysState.brightness;
+                slider-width: 220px;
+                has-start-icon: true;
+                start-icon: @image-url("../icons/sun.svg");
+                start-icon-size: 13px;
+                has-end-icon: true;
+                end-icon: @image-url("../icons/sun.svg");
+                end-icon-size: 17px;
+                moved(value) => { DisplaysState.brightness-moved(value); }
+                released(value) => { DisplaysState.brightness-moved(value); }
+            }
+        }
+        if DisplaysState.night-light-supported: Section {
+            title: @tr("Luz nocturna");
+            Row {
+                first: true;
+                label: @tr("Luz nocturna");
+                sub: @tr("Colores más cálidos a la noche.");
+                toggle: true;
+                checked: DisplaysState.night-light;
+                toggled(value) => { DisplaysState.set-night-light(value); }
+            }
+            if DisplaysState.night-light: SliderRow {
+                label: @tr("Intensidad");
+                value: DisplaysState.night-light-strength;
+                slider-width: 220px;
+                has-start-icon: true;
+                start-icon: @image-url("../icons/sun.svg");
+                start-icon-size: 13px;
+                has-end-icon: true;
+                end-icon: @image-url("../icons/moon.svg");
+                end-icon-size: 15px;
+                moved(value) => { DisplaysState.night-light-strength-moved(value); }
+                released(value) => { DisplaysState.night-light-strength-moved(value); }
+            }
+        }
+        Section {
+            footer: @tr("Estas opciones se abren en Configuración de Windows.");
+            if !DisplaysState.night-light-supported: Row {
+                first: true;
+                label: @tr("Luz nocturna");
+                sub: @tr("Colores más cálidos a la noche.");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:nightlight"); }
+            }
+            Row {
+                first: DisplaysState.night-light-supported;
+                label: @tr("Calibración y opciones de HDR");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:display-hdr"); }
+            }
+            Row {
+                label: @tr("Configuración avanzada de pantalla");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:display-advanced"); }
+            }
+        }
+    }
+}

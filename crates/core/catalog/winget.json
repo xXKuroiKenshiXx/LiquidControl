@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "groups": [
+    {
+      "title": "Toque macOS",
+      "apps": [
+        { "id": "QL-Win.QuickLook", "name": "QuickLook", "description": "Vista rápida con la barra espaciadora, como en macOS." },
+        { "id": "Flow-Launcher.Flow-Launcher", "name": "Flow Launcher", "description": "Buscador tipo Spotlight para abrir apps y archivos.", "site": "www.flowlauncher.com" },
+        { "id": "9PFXXSHC64H3", "name": "Raycast", "description": "Lanzador tipo Spotlight con extensiones, historial del portapapeles y atajos.", "site": "www.raycast.com", "source": "msstore" },
+        { "id": "CharlesMilette.TranslucentTB", "name": "TranslucentTB", "description": "Barra de tareas transparente o con desenfoque." },
+        { "id": "File-New-Project.EarTrumpet", "name": "EarTrumpet", "description": "Volumen por app desde la bandeja del sistema.", "site": "eartrumpet.app" },
+        { "id": "Microsoft.PowerToys", "name": "PowerToys", "description": "FancyZones, selector de color, Peek y más utilidades." }
+      ]
+    },
+    {
+      "title": "Navegadores",
+      "apps": [
+        { "id": "Mozilla.Firefox", "name": "Firefox", "description": "Navegador libre de Mozilla.", "site": "www.firefox.com" },
+        { "id": "Google.Chrome", "name": "Google Chrome", "description": "El navegador de Google." },
+        { "id": "Brave.Brave", "name": "Brave", "description": "Bloquea anuncios y rastreadores de serie.", "site": "brave.com" },
+        { "id": "Vivaldi.Vivaldi", "name": "Vivaldi", "description": "Muy personalizable, con pestañas en mosaico.", "site": "vivaldi.com" },
+        { "id": "Zen-Team.Zen-Browser", "name": "Zen", "description": "Basado en Firefox, con pestañas verticales.", "site": "zen-browser.app" }
+      ]
+    },
+    {
+      "title": "Comunicación",
+      "apps": [
+        { "id": "Discord.Discord", "name": "Discord", "description": "Voz, video y chat para comunidades.", "site": "discord.com" },
+        { "id": "Telegram.TelegramDesktop", "name": "Telegram", "description": "Mensajería rápida y sincronizada.", "site": "telegram.org" },
+        { "id": "Zoom.Zoom", "name": "Zoom", "description": "Videollamadas y reuniones.", "site": "zoom.us" },
+        { "id": "SlackTechnologies.Slack", "name": "Slack", "description": "Mensajería para equipos de trabajo.", "site": "slack.com" }
+      ]
+    },
+    {
+      "title": "Multimedia",
+      "apps": [
+        { "id": "VideoLAN.VLC", "name": "VLC", "description": "Reproduce prácticamente cualquier video o audio.", "site": "www.videolan.org" },
+        { "id": "Spotify.Spotify", "name": "Spotify", "description": "Música y podcasts.", "site": "www.spotify.com" },
+        { "id": "OBSProject.OBSStudio", "name": "OBS Studio", "description": "Grabación y transmisión en vivo.", "site": "obsproject.com" },
+        { "id": "Audacity.Audacity", "name": "Audacity", "description": "Editor de audio libre.", "site": "www.audacityteam.org" },
+        { "id": "HandBrake.HandBrake", "name": "HandBrake", "description": "Convertí y comprimí videos.", "site": "handbrake.fr" },
+        { "id": "KDE.Krita", "name": "Krita", "description": "Pintura digital e ilustración.", "site": "krita.org" },
+        { "id": "BlenderFoundation.Blender", "name": "Blender", "description": "Modelado, animación y render 3D.", "site": "www.blender.org" }
+      ]
+    },
+    {
+      "title": "Desarrollo",
+      "apps": [
+        { "id": "Microsoft.VisualStudioCode", "name": "Visual Studio Code", "description": "Editor de código liviano y extensible.", "site": "code.visualstudio.com" },
+        { "id": "Git.Git", "name": "Git", "description": "Control de versiones.", "site": "git-scm.com" },
+        { "id": "OpenJS.NodeJS.LTS", "name": "Node.js LTS", "description": "Entorno de JavaScript (versión de soporte extendido).", "site": "nodejs.org" },
+        { "id": "Python.Python.3.13", "name": "Python 3.13", "description": "Lenguaje de programación Python.", "site": "www.python.org" },
+        { "id": "Microsoft.WindowsTerminal", "name": "Windows Terminal", "description": "Terminal moderna con pestañas." }
+      ]
+    },
+    {
+      "title": "Utilidades",
+      "apps": [
+        { "id": "7zip.7zip", "name": "7-Zip", "description": "Comprimí y descomprimí casi cualquier formato.", "site": "www.7-zip.org" },
+        { "id": "voidtools.Everything", "name": "Everything", "description": "Buscá archivos por nombre al instante.", "site": "www.voidtools.com" },
+        { "id": "ShareX.ShareX", "name": "ShareX", "description": "Capturas y grabaciones de pantalla avanzadas.", "site": "getsharex.com" },
+        { "id": "Notepad++.Notepad++", "name": "Notepad++", "description": "Editor de texto y código.", "site": "notepad-plus-plus.org" },
+        { "id": "Bitwarden.Bitwarden", "name": "Bitwarden", "description": "Gestor de contraseñas de código abierto.", "site": "bitwarden.com" },
+        { "id": "WinDirStat.WinDirStat", "name": "WinDirStat", "description": "Descubrí qué ocupa espacio en tu disco.", "site": "windirstat.net" },
+        { "id": "REALiX.HWiNFO", "name": "HWiNFO", "description": "Información y sensores de hardware.", "site": "www.hwinfo.com" }
+      ]
+    },
+    {
+      "title": "Juegos",
+      "apps": [
+        { "id": "Valve.Steam", "name": "Steam", "description": "La tienda y biblioteca de juegos de Valve.", "site": "store.steampowered.com" },
+        { "id": "EpicGames.EpicGamesLauncher", "name": "Epic Games Launcher", "description": "Juegos de Epic, con títulos gratis cada semana.", "site": "store.epicgames.com" },
+        { "id": "GOG.Galaxy", "name": "GOG Galaxy", "description": "Juegos sin DRM y bibliotecas unificadas.", "site": "www.gog.com" },
+        { "id": "ElectronicArts.EADesktop", "name": "EA app", "description": "Juegos de Electronic Arts.", "site": "www.ea.com" }
+      ]
+    }
+  ]
+}

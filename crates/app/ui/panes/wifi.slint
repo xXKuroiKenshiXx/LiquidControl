@@ -1,0 +1,165 @@
+// Panel Wi‑Fi: radio, conexión actual, redes conocidas y cercanas.
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { Button, CompactHeader, Row, Section, SegmentedRow, Toggle } from "../widgets/basics.slint";
+import { EmptyState } from "../widgets/notice.slint";
+
+export struct WifiNetworkView {
+    ssid: string,
+    // Barras de señal 0–3
+    level: int,
+    secured: bool,
+    // Perfil guardado ("" = red nueva)
+    profile: string,
+}
+
+export global WifiState {
+    in property <bool> loaded;
+    // "" = la PC no tiene Wi‑Fi
+    in property <string> adapter;
+    in property <bool> radio-on;
+    in property <bool> auto-config: true;
+    in property <bool> location-denied;
+    in property <bool> connected;
+    in property <string> connection-ssid;
+    in property <string> connection-detail;
+    in property <bool> connection-secured;
+    in property <[WifiNetworkView]> known;
+    in property <[WifiNetworkView]> others;
+    in property <bool> scanning;
+    in property <bool> changing-auto-config;
+    // Red a la que se está conectando ("" = ninguna)
+    in property <string> connecting;
+    // Ahorro de energía del adaptador (0 = máximo rendimiento … 3 = máximo ahorro).
+    in property <int> power-saving;
+    in property <bool> changing-power-saving;
+    callback set-radio(bool);
+    callback scan();
+    callback join(string);
+    callback forget(string);
+    callback disconnect();
+    // Activa o desactiva que Windows busque y se conecte solo a redes.
+    callback set-auto-config(bool);
+    callback set-power-saving(int);
+}
+
+export component WifiPane {
+    // Hay adaptador, la radio está encendida y Windows puede buscar redes.
+    property <bool> ready: WifiState.adapter != "" && WifiState.radio-on && !WifiState.location-denied && WifiState.auto-config;
+
+    VerticalLayout {
+        spacing: 22px;
+        CompactHeader {
+            icon: @image-url("../icons/wifi.svg");
+            tint: Tints.blue;
+            title: "Wi‑Fi";
+            description: !WifiState.loaded ? "" : WifiState.adapter != "" ? WifiState.adapter : @tr("No hay un adaptador Wi‑Fi");
+            if WifiState.adapter != "": VerticalLayout {
+                alignment: center;
+                Toggle {
+                    checked: WifiState.radio-on;
+                    label: "Wi‑Fi";
+                    toggled(value) => { WifiState.set-radio(value); }
+                }
+            }
+        }
+        if WifiState.loaded && WifiState.adapter == "": EmptyState {
+            icon: @image-url("../icons/wifi-off.svg");
+            text: @tr("No se encontró un adaptador Wi‑Fi. Si tu PC se conecta por cable, revisá el panel Red.");
+            HorizontalLayout {
+                alignment: center;
+                Button {
+                    text: @tr("Abrir Red");
+                    clicked => { Nav.open("network", "", ""); }
+                }
+            }
+        }
+        if WifiState.adapter != "" && WifiState.location-denied: Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/map-pin.svg");
+                tint: Tints.blue;
+                label: @tr("Se necesita acceso a la ubicación");
+                sub: @tr("Desde Windows 11 24H2, ver las redes Wi‑Fi requiere que las apps de escritorio puedan usar la ubicación.");
+                button: @tr("Abrir ajustes");
+                button-clicked => { App.open-uri("ms-settings:privacy-location"); }
+            }
+        }
+        if root.ready && WifiState.connected: Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/wifi.svg");
+                tint: Tints.blue;
+                label: WifiState.connection-ssid;
+                sub: WifiState.connection-detail;
+                lock: WifiState.connection-secured;
+                button: @tr("Desconectar");
+                button-clicked => { WifiState.disconnect(); }
+            }
+        }
+        if root.ready && WifiState.known.length > 0: Section {
+            title: @tr("Redes conocidas");
+            for network[i] in WifiState.known: Row {
+                first: i == 0;
+                label: network.ssid;
+                lock: network.secured;
+                wifi-level: network.level;
+                button: @tr("Conectar");
+                button-busy: WifiState.connecting == network.ssid;
+                button2: @tr("Olvidar");
+                button-clicked => { WifiState.join(network.ssid); }
+                button2-clicked => { WifiState.forget(network.profile); }
+            }
+        }
+        if root.ready: Section {
+            title: @tr("Otras redes");
+            action: @tr("Buscar");
+            action-busy: WifiState.scanning;
+            action-clicked => { WifiState.scan(); }
+            for network[i] in WifiState.others: Row {
+                first: i == 0;
+                label: network.ssid;
+                clickable: true;
+                chevron: false;
+                badge: WifiState.connecting == network.ssid ? @tr("Conectando…") : "";
+                badge-tone: Theme.label2;
+                lock: network.secured;
+                wifi-level: network.level;
+                clicked => { WifiState.join(network.ssid); }
+            }
+            if WifiState.others.length == 0: Row {
+                first: true;
+                label: WifiState.scanning ? @tr("Buscando redes…") : @tr("No se encontraron otras redes.");
+            }
+        }
+        if WifiState.loaded && WifiState.adapter != "": Section {
+            title: @tr("Más opciones");
+            Row {
+                first: true;
+                label: @tr("Buscar y conectar redes automáticamente");
+                sub: @tr("Apagalo si preferís que Windows nunca prenda la radio por su cuenta ni intente reconectarte solo (no vas a poder ver ni elegir redes desde acá mientras esté apagado). También podés apagar el Wi‑Fi directamente con el interruptor de arriba.");
+                toggle: true;
+                checked: WifiState.auto-config;
+                toggle-enabled: !WifiState.changing-auto-config;
+                toggled(value) => { WifiState.set-auto-config(value); }
+            }
+            SegmentedRow {
+                label: @tr("Ahorro de energía del Wi‑Fi");
+                sub: @tr("Más ahorro baja la potencia de la señal y puede hacer que la conexión responda un poco más lento.");
+                labels: [@tr("Rendimiento"), @tr("Bajo"), @tr("Medio"), @tr("Máximo")];
+                selected: WifiState.power-saving;
+                enabled: !WifiState.changing-power-saving;
+                segmented-width: 260px;
+                activated(index) => { WifiState.set-power-saving(index); }
+            }
+        }
+        if WifiState.loaded && WifiState.adapter != "" && !WifiState.radio-on: Text {
+            text: @tr("El Wi‑Fi está desactivado.");
+            color: Theme.label2;
+            horizontal-alignment: center;
+        }
+    }
+}

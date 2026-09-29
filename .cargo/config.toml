@@ -1,0 +1,12 @@
+[build]
+# Compilación con límite de memoria estricto
+jobs = 2
+incremental = true
+
+[env]
+# Configuración para minimizar uso de memoria
+CARGO_BUILD_JOBS = "2"
+# Limitar memoria por proceso del compilador
+RUSTC_WRAPPER = ""
+# Forzar runtime dinámico para coincidir con Skia
+RUSTFLAGS = "-C target-feature=-crt-static"

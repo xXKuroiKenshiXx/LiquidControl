@@ -1,0 +1,22 @@
+[package]
+name = "liquidcontrol-core"
+description = "Backend de LiquidControl: acceso nativo (Win32, COM y WinRT) a la configuración de Windows."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+base64.workspace = true
+log.workspace = true
+winreg.workspace = true
+windows.workspace = true
+windows-core.workspace = true
+
+[lints]
+workspace = true

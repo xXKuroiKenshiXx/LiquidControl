@@ -1,0 +1,40 @@
+// Panel Escritorio y barra de tareas.
+
+import { Tints } from "../theme.slint";
+import { App } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { TweakList, TweaksState } from "../widgets/tweaks.slint";
+
+export component DesktopPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/panel-bottom.svg");
+            tint: Tints.black;
+            title: @tr("Escritorio y barra de tareas");
+            description: @tr("Barra de tareas, menú Inicio, Explorador de archivos y comportamiento de las ventanas.");
+        }
+        TweakList { category: TweaksState.desktop; }
+        Section {
+            Row {
+                first: true;
+                label: @tr("Reiniciar el Explorador");
+                sub: @tr("Aplica al instante los cambios de la barra de tareas y del Explorador.");
+                button: @tr("Reiniciar");
+                button-clicked => { App.restart-explorer(); }
+            }
+            Row {
+                label: @tr("Más opciones de la barra de tareas");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:taskbar"); }
+            }
+            Row {
+                label: @tr("Multitarea y escritorios virtuales");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:multitasking"); }
+            }
+        }
+    }
+}

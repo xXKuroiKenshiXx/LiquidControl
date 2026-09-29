@@ -1,0 +1,130 @@
+// Panel Sonido: volumen general, volumen por app, dispositivos (tocar uno lo
+// hace predeterminado) y sonidos del sistema.
+
+import { Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, Row, Section, SliderRow } from "../widgets/basics.slint";
+import { AdminNotice } from "../widgets/notice.slint";
+import { MixerSection } from "mixer.slint";
+
+export struct DeviceView {
+    id: string,
+    name: string,
+    is-default: bool,
+}
+
+export global SoundState {
+    in property <bool> loaded;
+    // 0–100
+    in property <float> volume;
+    in property <bool> muted;
+    in property <[DeviceView]> outputs;
+    in property <[DeviceView]> inputs;
+    in property <bool> system-sounds;
+    in property <bool> startup-sound;
+    // Se llama en vivo mientras se arrastra el deslizador.
+    callback volume-moved(float);
+    callback set-mute(bool);
+    // Usa ese dispositivo (salida o entrada) como predeterminado.
+    callback set-default(string);
+    // "system-sounds" o "startup-sound"
+    callback set-flag(string, bool);
+}
+
+export component SoundPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/volume-2.svg");
+            tint: Tints.pink;
+            title: @tr("Sonido");
+            description: @tr("Controlá el volumen general y el de cada app, elegí por dónde sale y entra el sonido y configurá los sonidos del sistema.");
+        }
+        if SoundState.loaded: Section {
+            SliderRow {
+                first: true;
+                label: @tr("Volumen de salida");
+                value-text: SoundState.muted ? @tr("Silenciado") : Math.round(SoundState.volume) + " %";
+                mute-button: true;
+                muted: SoundState.muted;
+                value: SoundState.volume;
+                slider-width: 220px;
+                moved(value) => { SoundState.volume-moved(value); }
+                released(value) => { SoundState.volume-moved(value); }
+                mute-toggled(muted) => { SoundState.set-mute(muted); }
+            }
+        }
+        MixerSection { }
+        if SoundState.loaded: Section {
+            title: @tr("Salida");
+            footer: @tr("Tocá un dispositivo para que el sonido salga por ahí.");
+            for device[i] in SoundState.outputs: Row {
+                first: i == 0;
+                has-icon: true;
+                icon: @image-url("../icons/speaker.svg");
+                tint: device.is-default ? Tints.pink : Tints.gray;
+                label: device.name;
+                sub: device.is-default ? @tr("En uso") : "";
+                clickable: !device.is-default;
+                chevron: false;
+                radio: device.is-default ? 1 : 0;
+                clicked => { SoundState.set-default(device.id); }
+            }
+            if SoundState.outputs.length == 0: Row {
+                first: true;
+                label: @tr("No hay dispositivos de salida.");
+            }
+        }
+        if SoundState.loaded: Section {
+            title: @tr("Entrada");
+            footer: @tr("Tocá un micrófono para usarlo en todas las apps.");
+            for device[i] in SoundState.inputs: Row {
+                first: i == 0;
+                has-icon: true;
+                icon: @image-url("../icons/mic.svg");
+                tint: device.is-default ? Tints.pink : Tints.gray;
+                label: device.name;
+                sub: device.is-default ? @tr("En uso") : "";
+                clickable: !device.is-default;
+                chevron: false;
+                radio: device.is-default ? 1 : 0;
+                clicked => { SoundState.set-default(device.id); }
+            }
+            if SoundState.inputs.length == 0: Row {
+                first: true;
+                label: @tr("No hay dispositivos de entrada.");
+            }
+        }
+        if SoundState.loaded: Section {
+            title: @tr("Sonidos del sistema");
+            Row {
+                first: true;
+                label: @tr("Reproducir sonidos del sistema");
+                sub: @tr("Alertas, notificaciones y eventos de Windows.");
+                toggle: true;
+                checked: SoundState.system-sounds;
+                toggled(value) => { SoundState.set-flag("system-sounds", value); }
+            }
+            Row {
+                label: @tr("Reproducir sonido al iniciar Windows");
+                highlighted: Nav.highlight == "startup-sound";
+                toggle: true;
+                checked: SoundState.startup-sound;
+                toggle-enabled: App.admin;
+                toggled(value) => { SoundState.set-flag("startup-sound", value); }
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                label: @tr("Más opciones de sonido");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:sound"); }
+            }
+        }
+        if !App.admin: AdminNotice {
+            text: @tr("El sonido de inicio de Windows requiere permisos de administrador.");
+        }
+    }
+}

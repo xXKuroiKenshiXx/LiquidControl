@@ -1,0 +1,221 @@
+// Panel Seguridad y antivirus: Windows Defender (protección en tiempo real y en
+// la nube, análisis, amenazas) y el Firewall de Windows (sus tres perfiles).
+
+import { Theme, Tints } from "../theme.slint";
+import { App } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { AdminNotice, EmptyState } from "../widgets/notice.slint";
+
+export struct FirewallView {
+    // 0 = dominio, 1 = privada, 2 = pública
+    profile: int,
+    label: string,
+    enabled: bool,
+}
+
+export struct ThreatView {
+    id: string,
+    name: string,
+    path: string,
+    // 1–5, de bajo a crítico
+    severity: int,
+    detected: string,
+    busy: bool,
+}
+
+export global SecurityState {
+    in property <bool> loaded;
+    in property <bool> defender-installed;
+    in property <bool> antivirus-enabled;
+    in property <bool> realtime-protection;
+    in property <bool> cloud-protection;
+    in property <bool> tamper-protection;
+    in property <string> last-scan;
+    in property <int> signature-age-days;
+    in property <[FirewallView]> firewalls;
+    in property <[ThreatView]> threats;
+    in property <bool> scanning;
+    callback set-realtime(bool);
+    callback set-cloud(bool);
+    callback set-firewall(int, bool);
+    callback scan(bool);
+    callback remove-threat(string);
+    callback open-security-app();
+}
+
+component StatusBanner inherits Rectangle {
+    property <bool> protected: SecurityState.antivirus-enabled && SecurityState.realtime-protection && SecurityState.threats.length == 0;
+    height: 96px;
+    border-radius: Theme.radius-group;
+    background: root.protected
+        ? @linear-gradient(135deg, #1f8a3f 0%, #0f5c26 100%)
+        : @linear-gradient(135deg, #d94a3a 0%, #921f14 100%);
+    drop-shadow-blur: Theme.glass-blur;
+    drop-shadow-color: Theme.shadow;
+    drop-shadow-offset-y: 4px;
+    HorizontalLayout {
+        padding: 18px;
+        spacing: 14px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 48px;
+                height: 48px;
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.18);
+                Image {
+                    source: root.protected ? @image-url("../icons/shield-check.svg") : @image-url("../icons/shield.svg");
+                    width: 24px;
+                    height: 24px;
+                    colorize: #ffffff;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 3px;
+            horizontal-stretch: 1;
+            Text {
+                text: !SecurityState.loaded ? @tr("Revisando…")
+                    : root.protected ? @tr("Tu PC está protegida")
+                    : SecurityState.threats.length > 0 ? @tr("Se encontraron amenazas")
+                    : @tr("Faltan activar protecciones");
+                font-size: 17px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            Text {
+                text: !SecurityState.defender-installed ? @tr("No se detectó Windows Defender: puede que uses otro antivirus.")
+                    : SecurityState.last-scan != "" ? @tr("Último análisis: {}", SecurityState.last-scan)
+                    : @tr("Todavía no se analizó esta PC.");
+                font-size: 12px;
+                color: #ffffffcc;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component SecurityPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/shield.svg");
+            tint: Tints.green;
+            title: @tr("Antivirus");
+            description: @tr("Protección en tiempo real, firewall, análisis y amenazas detectadas por Windows Defender.");
+        }
+        StatusBanner { }
+        if SecurityState.loaded: Section {
+            title: @tr("Protección");
+            // Primero la explicación (si corresponde): así se entiende antes de
+            // toparse con los interruptores bloqueados, no después.
+            if SecurityState.tamper-protection: Row {
+                first: true;
+                has-glyph: true;
+                glyph: @image-url("../icons/lock.svg");
+                label: @tr("Protección contra alteraciones activada");
+                sub: @tr("Por eso los dos interruptores de abajo están bloqueados: ni esta app ni ninguna otra (ni siquiera como administrador) puede cambiarlos así. Es intencional: solo se puede tocar desde la app de Seguridad de Windows, para que un virus no pueda desactivar tu antivirus.");
+                button: @tr("Abrir Seguridad de Windows");
+                button-clicked => { SecurityState.open-security-app(); }
+            }
+            Row {
+                first: !SecurityState.tamper-protection;
+                has-glyph: true;
+                glyph: @image-url("../icons/shield-check.svg");
+                label: @tr("Protección en tiempo real");
+                sub: SecurityState.tamper-protection
+                    ? @tr("Detecta y bloquea amenazas apenas aparecen. Bloqueado por Protección contra alteraciones (ver arriba).")
+                    : @tr("Detecta y bloquea amenazas apenas aparecen.");
+                toggle: true;
+                checked: SecurityState.realtime-protection;
+                toggle-enabled: !SecurityState.tamper-protection;
+                toggled(value) => { SecurityState.set-realtime(value); }
+            }
+            Row {
+                has-glyph: true;
+                glyph: @image-url("../icons/cloud.svg");
+                label: @tr("Protección basada en la nube");
+                sub: SecurityState.tamper-protection
+                    ? @tr("Usa la inteligencia de Microsoft para detectar amenazas nuevas. Bloqueado por Protección contra alteraciones (ver arriba).")
+                    : @tr("Usa la inteligencia de Microsoft para detectar amenazas nuevas más rápido.");
+                toggle: true;
+                checked: SecurityState.cloud-protection;
+                toggle-enabled: !SecurityState.tamper-protection;
+                toggled(value) => { SecurityState.set-cloud(value); }
+            }
+        }
+        if SecurityState.loaded: Section {
+            title: @tr("Firewall de Windows");
+            for fw[i] in SecurityState.firewalls: Row {
+                first: i == 0;
+                has-glyph: true;
+                glyph: @image-url("../icons/shield.svg");
+                label: fw.label;
+                toggle: true;
+                checked: fw.enabled;
+                toggled(value) => { SecurityState.set-firewall(fw.profile, value); }
+            }
+        }
+        if SecurityState.loaded: Section {
+            title: @tr("Analizar esta PC");
+            footer: SecurityState.signature-age-days > 2
+                ? @tr("Las definiciones de virus tienen {} días: se actualizan solas con Windows Update.", SecurityState.signature-age-days)
+                : "";
+            Row {
+                first: true;
+                has-glyph: true;
+                glyph: @image-url("../icons/zap.svg");
+                label: @tr("Análisis rápido");
+                sub: @tr("Revisa las carpetas donde suelen esconderse las amenazas. Un par de minutos.");
+                button: @tr("Analizar");
+                button-busy: SecurityState.scanning;
+                button-enabled: !SecurityState.scanning;
+                button-clicked => { SecurityState.scan(false); }
+            }
+            Row {
+                has-glyph: true;
+                glyph: @image-url("../icons/hard-drive.svg");
+                label: @tr("Análisis completo");
+                sub: @tr("Revisa todos los archivos y programas en ejecución. Puede tardar bastante.");
+                button: @tr("Analizar");
+                button-busy: SecurityState.scanning;
+                button-enabled: !SecurityState.scanning;
+                button-clicked => { SecurityState.scan(true); }
+            }
+        }
+        if SecurityState.loaded && SecurityState.threats.length > 0: Section {
+            title: @tr("Amenazas detectadas");
+            for threat[i] in SecurityState.threats: Row {
+                first: i == 0;
+                has-glyph: true;
+                glyph: @image-url("../icons/shield.svg");
+                label: threat.name;
+                sub: (threat.path != "" ? threat.path + " · " : "") + threat.detected;
+                badge: threat.severity >= 4 ? @tr("Crítico") : threat.severity >= 3 ? @tr("Alto") : @tr("Moderado");
+                badge-tone: threat.severity >= 4 ? Theme.danger : Theme.warning;
+                button: @tr("Quitar");
+                button-destructive: true;
+                button-busy: threat.busy;
+                button-clicked => { SecurityState.remove-threat(threat.id); }
+            }
+        }
+        if SecurityState.loaded && !SecurityState.defender-installed: EmptyState {
+            icon: @image-url("../icons/shield.svg");
+            text: @tr("No se detectó Windows Defender activo en esta PC. Si usás otro antivirus, administralo desde su propia app.");
+        }
+        Section {
+            Row {
+                first: true;
+                label: @tr("Abrir Seguridad de Windows");
+                sub: @tr("Protección de red, control parental y más opciones.");
+                clickable: true;
+                external: true;
+                clicked => { SecurityState.open-security-app(); }
+            }
+        }
+        if !App.admin: AdminNotice {
+            text: @tr("Cambiar estos ajustes y analizar la PC requiere permisos de administrador.");
+        }
+    }
+}

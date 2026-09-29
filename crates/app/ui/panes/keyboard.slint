@@ -1,0 +1,233 @@
+// Panel Teclado: repetición de teclas, cursor de texto, idiomas y distribuciones.
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { CustomRow, PaneHeader, PopupRow, Row, Section, SliderRow } from "../widgets/basics.slint";
+import { Slider } from "../widgets/controls.slint";
+
+export struct LanguageView {
+    tag: string,
+    name: string,
+    // Distribuciones del idioma, separadas por comas.
+    layouts: string,
+    can-remove: bool,
+}
+
+export struct LayoutView {
+    // Idioma al que pertenece y código del método de entrada.
+    tag: string,
+    tip: string,
+    name: string,
+    language: string,
+    can-remove: bool,
+}
+
+export global KeyboardState {
+    in property <bool> loaded;
+    // 0 (lenta) – 31 (rápida)
+    in property <int> repeat-rate;
+    // 0 (corto) – 3 (largo)
+    in property <int> repeat-delay;
+    // Milisegundos de parpadeo (200–1200)
+    in property <int> blink;
+    // 1–20 px
+    in property <int> caret-width;
+    // Clave del ajuste y valor.
+    callback set(string, int);
+
+    // Idiomas y distribuciones.
+    in property <bool> languages-loaded;
+    in property <bool> languages-busy;
+    in property <[LanguageView]> languages;
+    in property <[LayoutView]> layouts;
+    in property <[string]> default-options;
+    in property <int> default-index;
+    // El primer elemento de estos menús es "Agregar…" (no hace nada).
+    in property <[string]> language-options;
+    in property <[string]> layout-options;
+    callback set-default-layout(int);
+    callback add-language(int);
+    callback remove-language(string);
+    callback add-layout(int);
+    callback remove-layout(string, string);
+}
+
+export component KeyboardPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/keyboard.svg");
+            tint: Tints.gray;
+            title: @tr("Teclado");
+            description: @tr("Repetición de teclas, cursor de texto, idiomas de escritura y distribuciones de teclado.");
+        }
+        if KeyboardState.loaded: Section {
+            SliderRow {
+                first: true;
+                label: @tr("Velocidad de repetición de teclas");
+                value: KeyboardState.repeat-rate;
+                minimum: 0;
+                maximum: 31;
+                ticks: 8;
+                min-label: @tr("Lenta");
+                max-label: @tr("Rápida");
+                released(value) => { KeyboardState.set("rate", Math.round(value)); }
+            }
+            SliderRow {
+                label: @tr("Retardo hasta la repetición");
+                value: 3 - KeyboardState.repeat-delay;
+                minimum: 0;
+                maximum: 3;
+                ticks: 4;
+                min-label: @tr("Largo");
+                max-label: @tr("Corto");
+                released(value) => { KeyboardState.set("delay", 3 - Math.round(value)); }
+            }
+            // Campo para probar la repetición sin salir del panel.
+            Rectangle {
+                height: 42px;
+                Rectangle {
+                    x: 10px;
+                    y: 4px;
+                    width: parent.width - 20px;
+                    height: 28px;
+                    border-radius: 8px;
+                    background: Theme.field;
+                    border-width: 1px;
+                    border-color: sample.has-focus ? Theme.accent.with-alpha(0.55) : Theme.group-border;
+                    if sample.text == "": Text {
+                        x: 10px;
+                        height: 100%;
+                        text: @tr("Hacé clic acá y mantené presionada una tecla para probar");
+                        color: Theme.label2;
+                        vertical-alignment: center;
+                    }
+                    sample := TextInput {
+                        x: 10px;
+                        width: parent.width - 20px;
+                        height: 100%;
+                        color: Theme.label;
+                        vertical-alignment: center;
+                        single-line: true;
+                    }
+                }
+            }
+        }
+        if KeyboardState.languages-loaded: Section {
+            title: @tr("Idiomas de escritura");
+            footer: KeyboardState.languages-busy ? @tr("Aplicando cambios…")
+                : @tr("El primer idioma es el principal. Los cambios se aplican a tu cuenta de Windows; algunos idiomas descargan componentes en segundo plano.");
+            PopupRow {
+                first: true;
+                label: @tr("Teclado predeterminado");
+                highlighted: Nav.highlight == "languages";
+                options: KeyboardState.default-options;
+                selected: KeyboardState.default-index;
+                popup-width: 260px;
+                enabled: !KeyboardState.languages-busy;
+                activated(index) => { KeyboardState.set-default-layout(index); }
+            }
+            for language in KeyboardState.languages: Row {
+                has-glyph: true;
+                glyph: @image-url("../icons/languages.svg");
+                label: language.name;
+                sub: language.layouts;
+                button2: language.can-remove ? @tr("Quitar") : "";
+                button2-destructive: true;
+                enabled: !KeyboardState.languages-busy;
+                button2-clicked => { KeyboardState.remove-language(language.tag); }
+            }
+            PopupRow {
+                label: @tr("Agregar un idioma");
+                options: KeyboardState.language-options;
+                selected: 0;
+                popup-width: 220px;
+                enabled: !KeyboardState.languages-busy;
+                activated(index) => {
+                    if index > 0 {
+                        KeyboardState.add-language(index);
+                    }
+                }
+            }
+        }
+        if KeyboardState.languages-loaded: Section {
+            title: @tr("Distribuciones de teclado");
+            for layout[i] in KeyboardState.layouts: Row {
+                first: i == 0;
+                has-glyph: true;
+                glyph: @image-url("../icons/keyboard.svg");
+                label: layout.name;
+                sub: layout.language;
+                button2: layout.can-remove ? @tr("Quitar") : "";
+                button2-destructive: true;
+                enabled: !KeyboardState.languages-busy;
+                button2-clicked => { KeyboardState.remove-layout(layout.tag, layout.tip); }
+            }
+            PopupRow {
+                first: KeyboardState.layouts.length == 0;
+                label: @tr("Agregar una distribución al idioma principal");
+                options: KeyboardState.layout-options;
+                selected: 0;
+                popup-width: 240px;
+                enabled: !KeyboardState.languages-busy;
+                activated(index) => {
+                    if index > 0 {
+                        KeyboardState.add-layout(index);
+                    }
+                }
+            }
+        }
+        if KeyboardState.loaded: Section {
+            title: @tr("Cursor de texto");
+            SliderRow {
+                first: true;
+                label: @tr("Velocidad de parpadeo");
+                value: 1300 - KeyboardState.blink;
+                minimum: 100;
+                maximum: 1100;
+                step: 50;
+                min-label: @tr("Lenta");
+                max-label: @tr("Rápida");
+                released(value) => { KeyboardState.set("blink", 1300 - Math.round(value)); }
+            }
+            CustomRow {
+                label: @tr("Grosor del cursor de texto");
+                Rectangle {
+                    width: 24px;
+                    Rectangle {
+                        width: KeyboardState.caret-width * 1px;
+                        height: 18px;
+                        border-radius: 1px;
+                        background: Theme.accent;
+                    }
+                }
+                Slider {
+                    width: 260px;
+                    label: @tr("Grosor del cursor de texto");
+                    value: KeyboardState.caret-width;
+                    minimum: 1;
+                    maximum: 20;
+                    min-label: @tr("Fino");
+                    max-label: @tr("Grueso");
+                    released(value) => { KeyboardState.set("caret", Math.round(value)); }
+                }
+            }
+        }
+        Section {
+            footer: @tr("Estas opciones se abren en Configuración de Windows.");
+            Row {
+                first: true;
+                label: @tr("Idioma y región (más opciones)");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:regionlanguage"); }
+            }
+            Row {
+                label: @tr("Teclas especiales, filtro y alternancia");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-keyboard"); }
+            }
+        }
+    }
+}

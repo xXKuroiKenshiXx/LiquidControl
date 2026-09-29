@@ -1,0 +1,30 @@
+# Compilados de Rust
+/target/
+/dist/
+
+# Datos del modo portable y logs
+data/
+*.log
+
+# Configuración, caché y credenciales de herramientas locales
+.claude/
+.claude.json
+.cursor/
+.windsurf/
+.aider*
+.continue/
+.github/copilot-workspace/
+CLAUDE.local.md
+*.local.md
+
+# Claves y secretos que nunca deberían llegar al repo
+.env
+.env.*
+!.env.example
+
+# Editores / sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,998 @@
+{
+  "version": 1,
+  "tweaks": [
+    {
+      "id": "privacy.telemetry",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Limitar la telemetría de Windows",
+      "description": "Reduce los datos de diagnóstico que Windows envía a Microsoft al mínimo que permite tu edición.",
+      "risk": "safe",
+      "restart": "none",
+      "icon": "eye-off",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowTelemetry", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection", "name": "AllowTelemetry", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.telemetry_service",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Desactivar el servicio de telemetría",
+      "description": "Detiene «Experiencias del usuario y telemetría asociadas» (DiagTrack), el servicio que recopila y envía los datos.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "service": "DiagTrack", "on": "disabled", "off": "auto" },
+        { "service": "dmwappushservice", "on": "disabled", "off": "manual" }
+      ]
+    },
+    {
+      "id": "privacy.telemetry_tasks",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Desactivar tareas programadas de recopilación",
+      "description": "Programa de mejora de la experiencia del usuario, evaluador de compatibilidad y encuestas de comentarios.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "task": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator", "on": "disabled" },
+        { "task": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip", "on": "disabled" },
+        { "task": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser", "on": "disabled" },
+        { "task": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient", "on": "disabled" },
+        { "task": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload", "on": "disabled" }
+      ]
+    },
+    {
+      "id": "privacy.error_reporting",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Desactivar el informe de errores",
+      "description": "Windows deja de enviar volcados y reportes de fallos de apps a Microsoft.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Error Reporting", "name": "Disabled", "type": "dword", "on": 1, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting", "name": "Disabled", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "privacy.feedback",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "No pedir comentarios",
+      "description": "Evita las encuestas y notificaciones que piden tu opinión sobre Windows.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\SOFTWARE\\Microsoft\\Siuf\\Rules", "name": "NumberOfSIUFInPeriod", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKCU\\SOFTWARE\\Microsoft\\Siuf\\Rules", "name": "PeriodInNanoSeconds", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.tailored_experiences",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Sin experiencias personalizadas",
+      "description": "Microsoft no usa tus datos de diagnóstico para mostrarte consejos, anuncios y recomendaciones a medida.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Privacy", "name": "TailoredExperiencesWithDiagnosticDataEnabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent", "name": "DisableTailoredExperiencesWithDiagnosticData", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.inking_typing",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "No recopilar escritura a mano ni tecleo",
+      "description": "Desactiva el diccionario personalizado que aprende de lo que escribís y dibujás.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\InputPersonalization", "name": "RestrictImplicitInkCollection", "type": "dword", "on": 1, "off": 0 },
+        { "reg": "HKCU\\Software\\Microsoft\\InputPersonalization", "name": "RestrictImplicitTextCollection", "type": "dword", "on": 1, "off": 0 },
+        { "reg": "HKCU\\Software\\Microsoft\\InputPersonalization\\TrainedDataStore", "name": "HarvestContacts", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Personalization\\Settings", "name": "AcceptedPrivacyPolicy", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.advertising_id",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Desactivar el identificador de publicidad",
+      "description": "Las apps no pueden usar tu ID de publicidad para mostrarte anuncios personalizados.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo", "name": "Enabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.start_suggestions",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Sin apps sugeridas en Inicio",
+      "description": "Quita las apps promocionadas y sugerencias del menú Inicio.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338388Enabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SystemPaneSuggestionsEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.tips",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Sin consejos ni trucos de Windows",
+      "description": "Deja de mostrar sugerencias mientras usás Windows.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338389Enabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SoftLandingEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.lockscreen_ads",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Sin datos curiosos en la pantalla bloqueada",
+      "description": "Quita los textos promocionales y curiosidades sobre la imagen de bloqueo.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "RotatingLockScreenOverlayEnabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338387Enabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.settings_suggestions",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Sin contenido sugerido en Configuración",
+      "description": "Oculta las recomendaciones y promociones dentro de la app Configuración.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338393Enabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-353694Enabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-353696Enabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.silent_installs",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "No instalar apps promocionadas en silencio",
+      "description": "Evita que Windows descargue apps sugeridas (juegos, redes sociales) sin preguntarte.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SilentInstalledAppsEnabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "PreInstalledAppsEnabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "OemPreInstalledAppsEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.consumer_features",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Desactivar las experiencias del consumidor",
+      "description": "Política que impide que Windows agregue apps y contenido de terceros a tu cuenta.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "name": "DisableWindowsConsumerFeatures", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.welcome_experience",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Sin pantallas de bienvenida tras actualizar",
+      "description": "Omite la experiencia de bienvenida y las invitaciones a «terminar de configurar» tu PC.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-310093Enabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement", "name": "ScoobeSystemSettingEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.account_notifications",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Sin avisos de la cuenta en Inicio",
+      "description": "Oculta los recordatorios de la cuenta Microsoft (copias de seguridad, OneDrive, Microsoft 365) en el menú Inicio.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_AccountNotifications", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.activity_history",
+      "category": "privacy",
+      "section": "Actividad e historial",
+      "title": "Desactivar el historial de actividad",
+      "description": "Windows deja de registrar y subir las apps, archivos y sitios que usás.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", "name": "EnableActivityFeed", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", "name": "PublishUserActivities", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", "name": "UploadUserActivities", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.recent_items",
+      "category": "privacy",
+      "section": "Actividad e historial",
+      "title": "No registrar apps ni archivos recientes",
+      "description": "Inicio y el Explorador dejan de mostrar lo último que abriste.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_TrackDocs", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_TrackProgs", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.perm_location",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear la ubicación",
+      "description": "Ninguna app puede acceder a tu ubicación. Ojo: en Windows 11 24H2 también impide ver las redes Wi‑Fi desde apps de escritorio.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_camera",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear la cámara",
+      "description": "Ninguna app puede usar la cámara hasta que vuelvas a permitirlo.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_microphone",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear el micrófono",
+      "description": "Ninguna app puede usar el micrófono hasta que vuelvas a permitirlo.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_contacts",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear contactos, calendario y llamadas",
+      "description": "Las apps no pueden leer tus contactos, tu calendario ni el historial de llamadas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\contacts", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appointments", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\phoneCallHistory", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_messaging",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear correo, mensajes y tareas",
+      "description": "Las apps no pueden leer tus correos, mensajes SMS/MMS ni tus tareas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\email", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\chat", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userDataTasks", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_account_info",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear la información de la cuenta",
+      "description": "Las apps no pueden ver tu nombre, foto ni otros datos de la cuenta.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userAccountInformation", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_diagnostics",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear el diagnóstico de otras apps",
+      "description": "Las apps no pueden obtener información de diagnóstico sobre otras apps en ejecución.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appDiagnostics", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.perm_notifications",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear el acceso a tus notificaciones",
+      "description": "Las apps no pueden leer las notificaciones que recibís.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userNotificationListener", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow" }
+      ]
+    },
+    {
+      "id": "privacy.bing_search",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "Sin resultados web de Bing en la búsqueda",
+      "description": "La búsqueda de Windows solo muestra apps, archivos y configuración de tu PC.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Search", "name": "BingSearchEnabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer", "name": "DisableSearchBoxSuggestions", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.search_highlights",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "Sin destacados de búsqueda",
+      "description": "Quita las ilustraciones y novedades del día del cuadro de búsqueda.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings", "name": "IsDynamicSearchBoxEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.cloud_search",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "No buscar en la nube",
+      "description": "La búsqueda no incluye contenido de OneDrive, Outlook ni otras cuentas en línea.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings", "name": "IsMSACloudSearchEnabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings", "name": "IsAADCloudSearchEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.search_history",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "No guardar el historial de búsqueda",
+      "description": "Windows deja de recordar lo que buscaste en este dispositivo.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings", "name": "IsDeviceSearchHistoryEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.copilot",
+      "category": "privacy",
+      "section": "IA de Windows",
+      "title": "Desactivar Copilot",
+      "description": "Apaga Copilot de Windows y quita su botón.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot", "name": "TurnOffWindowsCopilot", "type": "dword", "on": 1, "off": null },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "ShowCopilotButton", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.recall",
+      "category": "privacy",
+      "section": "IA de Windows",
+      "title": "Desactivar Recall",
+      "description": "Impide que Windows guarde capturas periódicas de tu pantalla para buscarlas con IA.",
+      "risk": "safe",
+      "restart": "reboot",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "DisableAIDataAnalysis", "type": "dword", "on": 1, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "AllowRecallEnablement", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.click_to_do",
+      "category": "privacy",
+      "section": "IA de Windows",
+      "title": "Desactivar Hacer clic para hacer",
+      "description": "Apaga el análisis con IA del contenido en pantalla (Click to Do).",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "DisableClickToDo", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.notepad_ai",
+      "category": "privacy",
+      "section": "IA de Windows",
+      "title": "Quitar la IA del Bloc de notas",
+      "description": "Desactiva Reescribir, Resumir y demás funciones de IA del Bloc de notas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\WindowsNotepad", "name": "DisableAIFeatures", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.office_telemetry",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "Telemetría de Microsoft Office",
+      "description": "Desactiva el envío de datos de uso y el registro de diagnóstico de Office.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKCU\\Software\\Microsoft\\Office",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Office\\Common\\ClientTelemetry", "name": "DisableTelemetry", "type": "dword", "on": 1, "off": null },
+        { "reg": "HKCU\\Software\\Microsoft\\Office\\16.0\\Common\\ClientTelemetry", "name": "DisableTelemetry", "type": "dword", "on": 1, "off": null },
+        { "reg": "HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM", "name": "EnableLogging", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM", "name": "EnableUpload", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.nvidia_telemetry",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "Telemetría de NVIDIA",
+      "description": "Desactiva la recopilación de datos del panel de control y del controlador de NVIDIA.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKLM\\SOFTWARE\\NVIDIA Corporation",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\NVIDIA Corporation\\NvControlPanel2\\Client", "name": "OptInOrOutPreference", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\FTS", "name": "EnableRID44231", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\FTS", "name": "EnableRID64640", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\FTS", "name": "EnableRID66610", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "privacy.cli_telemetry",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "Telemetría de PowerShell y .NET",
+      "description": "Define POWERSHELL_TELEMETRY_OPTOUT y DOTNET_CLI_TELEMETRY_OPTOUT para tu usuario.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Environment", "name": "POWERSHELL_TELEMETRY_OPTOUT", "type": "sz", "on": "1", "off": null },
+        { "reg": "HKCU\\Environment", "name": "DOTNET_CLI_TELEMETRY_OPTOUT", "type": "sz", "on": "1", "off": null }
+      ]
+    },
+
+    {
+      "id": "desktop.taskbar_left",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Alinear la barra de tareas a la izquierda",
+      "description": "Botón Inicio y apps a la izquierda, como en Windows 10.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarAl", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.hide_search",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Ocultar el cuadro de búsqueda",
+      "description": "La búsqueda sigue disponible al abrir Inicio y escribir.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Search", "name": "SearchboxTaskbarMode", "type": "dword", "on": 0, "off": 2 }
+      ]
+    },
+    {
+      "id": "desktop.hide_taskview",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Ocultar el botón Vista de tareas",
+      "description": "Seguís pudiendo usar Win + Tab para ver ventanas y escritorios.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "ShowTaskViewButton", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.hide_widgets",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Ocultar Widgets",
+      "description": "Quita el clima y las noticias de la barra de tareas.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarDa", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.clock_seconds",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Mostrar segundos en el reloj",
+      "description": "El reloj de la bandeja muestra hh:mm:ss.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "ShowSecondsInSystemClock", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.end_task",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "«Finalizar tarea» con clic derecho",
+      "description": "Cerrá una app colgada desde su botón en la barra de tareas, sin abrir el Administrador de tareas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings", "name": "TaskbarEndTask", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.never_combine",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "No combinar los botones",
+      "description": "Cada ventana tiene su propio botón con su título, como en versiones anteriores.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarGlomLevel", "type": "dword", "on": 2, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.start_more_pins",
+      "category": "desktop",
+      "section": "Menú Inicio",
+      "title": "Más espacio para apps ancladas",
+      "description": "Inicio muestra más filas de apps ancladas y menos recomendaciones.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_Layout", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.start_recommendations",
+      "category": "desktop",
+      "section": "Menú Inicio",
+      "title": "Sin recomendaciones de sitios y consejos",
+      "description": "Inicio deja de recomendar sitios web, consejos y apps nuevas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_IrisRecommendations", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.start_recently_added",
+      "category": "desktop",
+      "section": "Menú Inicio",
+      "title": "Sin apps agregadas recientemente",
+      "description": "Inicio deja de mostrar la lista de lo último que instalaste.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Start", "name": "ShowRecentList", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.show_extensions",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Mostrar las extensiones de archivo",
+      "description": "Ves «foto.jpg» en lugar de «foto». Ayuda a detectar archivos engañosos.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "HideFileExt", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.show_hidden",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Mostrar archivos ocultos",
+      "description": "Muestra carpetas como AppData y archivos marcados como ocultos.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Hidden", "type": "dword", "on": 1, "off": 2 }
+      ]
+    },
+    {
+      "id": "desktop.open_this_pc",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Abrir el Explorador en «Este equipo»",
+      "description": "Arranca mostrando tus unidades en lugar de Inicio.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "LaunchTo", "type": "dword", "on": 1, "off": 2 }
+      ]
+    },
+    {
+      "id": "desktop.classic_context_menu",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Menú contextual clásico",
+      "description": "El clic derecho muestra todas las opciones sin tener que elegir «Mostrar más opciones».",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "regKey": "HKCU\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}", "on": true },
+        { "reg": "HKCU\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32", "name": "", "type": "sz", "on": "", "off": null }
+      ]
+    },
+    {
+      "id": "desktop.compact_mode",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Vista compacta",
+      "description": "Reduce el espacio entre elementos para ver más archivos a la vez.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "UseCompactMode", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.full_path",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Ruta completa en la barra de título",
+      "description": "Muestra la ubicación completa de la carpeta abierta.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CabinetState", "name": "FullPath", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.onedrive_ads",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Sin anuncios de OneDrive en el Explorador",
+      "description": "Oculta las notificaciones del proveedor de sincronización.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "ShowSyncProviderNotifications", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.hide_gallery",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Ocultar «Galería» del panel lateral",
+      "description": "Quita el acceso a Galería del panel de navegación del Explorador.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        { "reg": "HKCU\\Software\\Classes\\CLSID\\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}", "name": "System.IsPinnedToNameSpaceTree", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "desktop.snap_flyout",
+      "category": "desktop",
+      "section": "Ventanas y multitarea",
+      "title": "Diseños de acoplamiento al pasar sobre Maximizar",
+      "description": "Muestra la grilla de Snap al dejar el puntero sobre el botón Maximizar.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "EnableSnapAssistFlyout", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.shake",
+      "category": "desktop",
+      "section": "Ventanas y multitarea",
+      "title": "Agitar para minimizar las demás ventanas",
+      "description": "Sacudí la barra de título de una ventana para minimizar el resto.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "DisallowShaking", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "desktop.hardware_clock_utc",
+      "category": "desktop",
+      "section": "Sistema",
+      "title": "Reloj interno en UTC",
+      "description": "Para arrancar en dual boot con Linux o macOS sin que se desacomode la hora entre sistemas: Windows deja de asumir que el reloj de la placa está en hora local. Necesita reiniciar para notarse, y si esta PC solo tiene Windows la hora se va a ver mal hasta que Windows la vuelva a ajustar solo.",
+      "risk": "moderate",
+      "restart": "reboot",
+      "ops": [
+        { "reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation", "name": "RealTimeIsUniversal", "type": "qword", "on": 1, "off": null }
+      ]
+    },
+
+    {
+      "id": "optimize.instant_menus",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Menús y vistas previas instantáneos",
+      "description": "Elimina la demora al abrir submenús y al pasar el puntero sobre elementos.",
+      "risk": "safe",
+      "restart": "logoff",
+      "ops": [
+        { "reg": "HKCU\\Control Panel\\Desktop", "name": "MenuShowDelay", "type": "sz", "on": "0", "off": "400" },
+        { "reg": "HKCU\\Control Panel\\Mouse", "name": "MouseHoverTime", "type": "sz", "on": "10", "off": "400" }
+      ]
+    },
+    {
+      "id": "optimize.startup_delay",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Sin demora para las apps de inicio",
+      "description": "Windows abre los programas de inicio en cuanto carga el escritorio.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize", "name": "StartupDelayInMSec", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.background_apps",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Sin apps de la Store en segundo plano",
+      "description": "Las apps de la Store no se ejecutan cuando no las estás usando. Ahorra batería y memoria.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications", "name": "GlobalUserDisabled", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "optimize.sysmain",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Desactivar SysMain (Superfetch)",
+      "description": "Deja de precargar apps en memoria. En discos SSD la ganancia de SysMain es mínima.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "service": "SysMain", "on": "disabled", "off": "auto" }
+      ]
+    },
+    {
+      "id": "optimize.search_indexing",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Desactivar la indexación de búsqueda",
+      "description": "Menos uso de disco en segundo plano, pero la búsqueda de archivos se vuelve bastante más lenta.",
+      "risk": "advanced",
+      "restart": "none",
+      "ops": [
+        { "service": "WSearch", "on": "disabled", "off": "auto" }
+      ]
+    },
+    {
+      "id": "optimize.hags",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Programación de GPU acelerada por hardware",
+      "description": "La GPU administra su propia memoria: menos latencia en juegos con placas modernas.",
+      "risk": "moderate",
+      "restart": "reboot",
+      "ops": [
+        { "reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers", "name": "HwSchMode", "type": "dword", "on": 2, "off": 1 }
+      ]
+    },
+    {
+      "id": "optimize.game_mode",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Modo de juego",
+      "description": "Windows prioriza el juego en primer plano y pausa tareas de fondo como Windows Update.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Software\\Microsoft\\GameBar", "name": "AutoGameModeEnabled", "type": "dword", "on": 1, "off": 0 }
+      ]
+    },
+    {
+      "id": "optimize.game_dvr",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Sin grabación en segundo plano",
+      "description": "Desactiva Game DVR, que graba continuamente para «capturar lo que pasó».",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\System\\GameConfigStore", "name": "GameDVR_Enabled", "type": "dword", "on": 0, "off": 1 },
+        { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "name": "AppCaptureEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "optimize.multimedia_priority",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Priorizar juegos y multimedia",
+      "description": "Quita el límite de red para multimedia y reserva menos CPU para tareas de fondo.",
+      "risk": "advanced",
+      "restart": "reboot",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile", "name": "NetworkThrottlingIndex", "type": "dword", "on": 4294967295, "off": 10 },
+        { "reg": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile", "name": "SystemResponsiveness", "type": "dword", "on": 10, "off": 20 }
+      ]
+    },
+    {
+      "id": "optimize.delivery_optimization",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "No compartir actualizaciones con otras PCs",
+      "description": "Las actualizaciones se descargan solo de Microsoft, sin usar tu conexión para subirlas a otros.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization", "name": "DODownloadMode", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.no_auto_reboot",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "No reiniciar solo con la sesión iniciada",
+      "description": "Windows espera a que reinicies vos para terminar de instalar actualizaciones.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "name": "NoAutoRebootWithLoggedOnUsers", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.no_driver_updates",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "No instalar drivers desde Windows Update",
+      "description": "Útil si instalás los drivers de tu placa de video o del fabricante a mano.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate", "name": "ExcludeWUDriversInQualityUpdate", "type": "dword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.long_pause",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "Permitir pausar actualizaciones por más tiempo",
+      "description": "Amplía el menú «Pausar actualizaciones» más allá de 5 semanas.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings", "name": "FlightSettingsMaxPauseDays", "type": "dword", "on": 7300, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.store_autoupdate",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "Sin actualizaciones automáticas de la Store",
+      "description": "Las apps de la Microsoft Store se actualizan solo cuando vos lo pedís.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsStore", "name": "AutoDownload", "type": "dword", "on": 2, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.edge_debloat",
+      "category": "optimize",
+      "section": "Microsoft Edge",
+      "title": "Edge más limpio",
+      "description": "Sin asistente de compras, recompensas, barra lateral, recomendaciones ni pantalla de bienvenida.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "HideFirstRunExperience", "type": "dword", "on": 1, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "EdgeShoppingAssistantEnabled", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "ShowMicrosoftRewards", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "HubsSidebarEnabled", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "ShowRecommendationsEnabled", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "SpotlightExperiencesAndRecommendationsEnabled", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "PersonalizationReportingEnabled", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "UserFeedbackAllowed", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "DiagnosticData", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.edge_background",
+      "category": "optimize",
+      "section": "Microsoft Edge",
+      "title": "Edge no queda abierto en segundo plano",
+      "description": "Desactiva el arranque rápido y la ejecución de fondo de Edge al cerrarlo.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "StartupBoostEnabled", "type": "dword", "on": 0, "off": null },
+        { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "BackgroundModeEnabled", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+
+    {
+      "id": "accessibility.sticky_keys_shortcut",
+      "category": "accessibility",
+      "section": "Atajos de teclado",
+      "title": "Sin atajo de Teclas especiales",
+      "description": "Presionar Mayús cinco veces ya no abre el aviso de Teclas especiales (ideal para jugar).",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Control Panel\\Accessibility\\StickyKeys", "name": "Flags", "type": "sz", "on": "506", "off": "510" }
+      ]
+    },
+    {
+      "id": "accessibility.filter_keys_shortcut",
+      "category": "accessibility",
+      "section": "Atajos de teclado",
+      "title": "Sin atajo de Teclas filtro",
+      "description": "Mantener Mayús derecha 8 segundos ya no activa Teclas filtro.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Control Panel\\Accessibility\\Keyboard Response", "name": "Flags", "type": "sz", "on": "122", "off": "126" }
+      ]
+    },
+    {
+      "id": "accessibility.toggle_keys_shortcut",
+      "category": "accessibility",
+      "section": "Atajos de teclado",
+      "title": "Sin atajo de Teclas de alternancia",
+      "description": "Mantener Bloq Num 5 segundos ya no activa el sonido de Teclas de alternancia.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        { "reg": "HKCU\\Control Panel\\Accessibility\\ToggleKeys", "name": "Flags", "type": "sz", "on": "58", "off": "62" }
+      ]
+    },
+    {
+      "id": "accessibility.long_notifications",
+      "category": "accessibility",
+      "section": "Visualización",
+      "title": "Notificaciones más duraderas",
+      "description": "Los avisos quedan 15 segundos en pantalla en lugar de 5.",
+      "risk": "safe",
+      "restart": "logoff",
+      "ops": [
+        { "reg": "HKCU\\Control Panel\\Accessibility", "name": "MessageDuration", "type": "dword", "on": 15, "off": 5 }
+      ]
+    }
+  ]
+}

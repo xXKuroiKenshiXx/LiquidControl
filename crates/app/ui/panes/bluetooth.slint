@@ -1,0 +1,127 @@
+// Panel Bluetooth: radio y dispositivos emparejados.
+
+import { Theme, Tints } from "../theme.slint";
+import { App } from "../globals.slint";
+import { Button, CompactHeader, Row, Section, Toggle } from "../widgets/basics.slint";
+import { EmptyState } from "../widgets/notice.slint";
+
+// Fila de dispositivo al estilo macOS: el símbolo solo (sin la baldosa de
+// color que usan las demás filas de la app), más grande, gris cuando no
+// está conectado y con el acento cuando sí.
+component DeviceRow inherits Rectangle {
+    in property <string> name;
+    in property <bool> connected;
+    in property <image> icon;
+    in property <bool> first: false;
+
+    min-height: 56px;
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 14px;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 26px;
+                height: 26px;
+                colorize: root.connected ? Theme.accent : Theme.label3;
+            }
+        }
+        Text {
+            text: root.name;
+            font-size: 13px;
+            color: Theme.label;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+        Text {
+            text: root.connected ? @tr("Conectado") : @tr("No conectado");
+            font-size: 12px;
+            color: root.connected ? Theme.accent : Theme.label3;
+            vertical-alignment: center;
+        }
+    }
+    if !root.first: Rectangle {
+        x: 50px;
+        y: 0px;
+        width: root.width - self.x - 10px;
+        height: 1px;
+        background: Theme.separator;
+    }
+}
+
+export struct BluetoothDeviceView {
+    name: string,
+    connected: bool,
+    // 0 parlante, 1 auriculares, 2 mouse, 3 teclado, 4 control, 5 teléfono, 6 reloj
+    kind: int,
+}
+
+export global BluetoothState {
+    in property <bool> loaded;
+    in property <bool> available: true;
+    in property <bool> on;
+    in property <[BluetoothDeviceView]> devices;
+    callback set-radio(bool);
+}
+
+export component BluetoothPane {
+    VerticalLayout {
+        spacing: 22px;
+        CompactHeader {
+            icon: @image-url("../icons/bluetooth.svg");
+            tint: Tints.blue;
+            title: "Bluetooth";
+            description: BluetoothState.loaded && !BluetoothState.available
+                ? @tr("No hay un adaptador Bluetooth")
+                : @tr("Conectá auriculares, teclados, mouses y otros accesorios.");
+            if BluetoothState.loaded && BluetoothState.available: VerticalLayout {
+                alignment: center;
+                Toggle {
+                    checked: BluetoothState.on;
+                    label: "Bluetooth";
+                    toggled(value) => { BluetoothState.set-radio(value); }
+                }
+            }
+        }
+        if BluetoothState.loaded && !BluetoothState.available: EmptyState {
+            icon: @image-url("../icons/bluetooth-off.svg");
+            text: @tr("No se encontró un adaptador Bluetooth en esta PC.");
+        }
+        if BluetoothState.loaded && BluetoothState.available && BluetoothState.on: Section {
+            title: @tr("Mis dispositivos");
+            for device[i] in BluetoothState.devices: DeviceRow {
+                first: i == 0;
+                icon: device.kind == 1 ? @image-url("../icons/headphones.svg")
+                    : device.kind == 2 ? @image-url("../icons/mouse.svg")
+                    : device.kind == 3 ? @image-url("../icons/keyboard.svg")
+                    : device.kind == 4 ? @image-url("../icons/gamepad-2.svg")
+                    : device.kind == 5 ? @image-url("../icons/smartphone.svg")
+                    : device.kind == 6 ? @image-url("../icons/watch.svg")
+                    : @image-url("../icons/speaker.svg");
+                connected: device.connected;
+                name: device.name;
+            }
+            if BluetoothState.devices.length == 0: Row {
+                first: true;
+                label: @tr("No hay dispositivos emparejados.");
+            }
+        }
+        if BluetoothState.loaded && BluetoothState.available && BluetoothState.on: HorizontalLayout {
+            alignment: center;
+            Button {
+                text: @tr("Agregar dispositivo…");
+                has-icon: true;
+                icon: @image-url("../icons/plus.svg");
+                clicked => { App.open-uri("ms-settings:bluetooth"); }
+            }
+        }
+        if BluetoothState.loaded && BluetoothState.available && !BluetoothState.on: Text {
+            text: @tr("El Bluetooth está desactivado.");
+            color: Theme.label2;
+            horizontal-alignment: center;
+        }
+    }
+}

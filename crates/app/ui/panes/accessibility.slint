@@ -1,0 +1,130 @@
+// Panel Accesibilidad: visión, movimiento y audición.
+
+import { Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { TweakList, TweaksState } from "../widgets/tweaks.slint";
+import { AppearanceState } from "appearance.slint";
+
+export global AccessibilityState {
+    in property <bool> magnifier;
+    callback set-magnifier(bool);
+}
+
+export component AccessibilityPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/person-standing.svg");
+            tint: Tints.blue;
+            title: @tr("Accesibilidad");
+            description: @tr("Adaptá Windows a tu vista, tu audición y tu forma de usar el teclado y el mouse.");
+        }
+        Section {
+            title: @tr("Visión");
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/zoom-in.svg");
+                tint: Tints.blue;
+                label: @tr("Lupa");
+                sub: @tr("Ampliá cualquier parte de la pantalla. Atajo: Win + «+», y Win + Esc para cerrarla.");
+                toggle: true;
+                checked: AccessibilityState.magnifier;
+                toggled(value) => { AccessibilityState.set-magnifier(value); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/type.svg");
+                tint: Tints.blue;
+                label: @tr("Tamaño del texto de Windows");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-display"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/contrast.svg");
+                tint: Tints.black;
+                label: @tr("Temas de contraste");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-highcontrast"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/palette.svg");
+                tint: Tints.purple;
+                label: @tr("Filtros de color");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-colorfilter"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/audio-lines.svg");
+                tint: Tints.gray;
+                label: @tr("Narrador");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-narrator"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/mouse-pointer-2.svg");
+                tint: Tints.gray;
+                label: @tr("Tamaño del puntero");
+                clickable: true;
+                clicked => { Nav.open("mouse", "", ""); }
+            }
+        }
+        // Los interruptores de "reducir" son el inverso de las banderas de Apariencia.
+        if AppearanceState.loaded: Section {
+            title: @tr("Movimiento y transparencia");
+            Row {
+                first: true;
+                label: @tr("Reducir movimiento");
+                sub: @tr("Desactiva las animaciones de ventanas y menús de Windows.");
+                toggle: true;
+                checked: !AppearanceState.animations;
+                toggled(value) => { AppearanceState.set-flag("animations", !value); }
+            }
+            Row {
+                label: @tr("Reducir transparencia");
+                sub: @tr("Superficies opacas en lugar de translúcidas.");
+                toggle: true;
+                checked: !AppearanceState.transparency;
+                toggled(value) => { AppearanceState.set-flag("transparency", !value); }
+            }
+            Row {
+                label: @tr("Mostrar siempre las barras de desplazamiento");
+                toggle: true;
+                checked: AppearanceState.scrollbars;
+                toggled(value) => { AppearanceState.set-flag("scrollbars", value); }
+            }
+        }
+        TweakList { category: TweaksState.accessibility; }
+        Section {
+            title: @tr("Audición");
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/audio-lines.svg");
+                tint: Tints.pink;
+                label: @tr("Audio mono");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-audio"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/captions.svg");
+                tint: Tints.gray;
+                label: @tr("Subtítulos");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:easeofaccess-closedcaptioning"); }
+            }
+        }
+    }
+}

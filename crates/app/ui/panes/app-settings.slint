@@ -1,0 +1,272 @@
+// Panel Ajustes de la app: tema, acento, tamaño de la interfaz, animaciones,
+// Liquid Glass, ventana, conexiones, datos y la consola de actividad (subpágina).
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, Row, Section, SegmentedRow, SliderRow } from "../widgets/basics.slint";
+import { SwatchRow } from "../widgets/swatches.slint";
+import { ConsolePane } from "console.slint";
+
+export global AppSettingsState {
+    // 0 = Sistema, 1 = Claro, 2 = Oscuro
+    in property <int> theme;
+    // Índice en accent-colors (0 = acento de Windows)
+    in property <int> accent;
+    in property <[color]> accent-colors;
+    in property <[string]> accent-labels;
+    // Índice de la muestra "Vidrio líquido" en accent-colors (-1 = ninguna).
+    in property <int> accent-glass-index: -1;
+    // 0 = macOS, 1 = Windows
+    in property <int> controls;
+    // Esquinas de la ventana: 0 = Windows, 1 = macOS
+    in property <int> corners;
+    // Índice del tamaño (90, 100, 115 o 130 %)
+    in property <int> zoom;
+    // Índice de la intensidad de animación (ninguna, suaves, normales, máximas)
+    in property <int> motion;
+    // 0–150 %
+    in property <float> glass;
+    in property <bool> catalog-icons;
+    in property <bool> portable;
+    in property <string> data-folder;
+    callback set-theme(int);
+    callback set-accent(int);
+    callback set-controls(int);
+    callback set-corners(int);
+    callback set-zoom(int);
+    callback set-motion(int);
+    callback glass-moved(float);
+    callback glass-released(float);
+    callback set-catalog-icons(bool);
+    callback open-data-folder();
+}
+
+// Vista previa en vivo de Liquid Glass: fondo con manchas de color que se
+// mueven solas y una cápsula de vidrio arriba, con la intensidad elegida.
+component GlassPreview inherits Rectangle {
+    property <float> t: 0;
+    Timer {
+        interval: 16ms;
+        running: Theme.motion > 0;
+        triggered => { root.t += 0.006 * Theme.motion; }
+    }
+
+    height: 168px;
+    border-radius: Theme.radius-group;
+    clip: true;
+    background: Theme.dark ? #17171a : #101014;
+
+    // Dos manchas de color desenfocadas (simulan el blur detrás del vidrio).
+    Rectangle {
+        x: (parent.width - self.width) * (0.5 + 0.5 * Math.sin(root.t * 1turn)) - self.width * 0.25;
+        y: (parent.height - self.height) * (0.5 + 0.5 * Math.cos(root.t * 0.8turn)) - self.height * 0.25;
+        width: 220px;
+        height: 220px;
+        border-radius: 110px;
+        background: #ff5f4a;
+        opacity: 0.55;
+    }
+    Rectangle {
+        x: (parent.width - self.width) * (0.5 + 0.5 * Math.cos(root.t * -0.7turn)) - self.width * 0.15;
+        y: (parent.height - self.height) * (0.5 + 0.5 * Math.sin(root.t * 0.9turn)) - self.height * 0.15;
+        width: 190px;
+        height: 190px;
+        border-radius: 95px;
+        background: #ffcf3f;
+        opacity: 0.5;
+    }
+    Rectangle {
+        x: (parent.width - self.width) * (0.5 + 0.5 * Math.sin(root.t * -0.6turn));
+        y: (parent.height - self.height) * (0.5 + 0.5 * Math.cos(root.t * 0.5turn));
+        width: 170px;
+        height: 170px;
+        border-radius: 85px;
+        background: #4a90ff;
+        opacity: 0.45;
+    }
+
+    // La cápsula de vidrio central: usa los mismos tokens que el resto de la app.
+    Rectangle {
+        width: 168px;
+        height: 42px;
+        border-radius: 21px;
+        background: @linear-gradient(180deg, Theme.glass-top 0%, Theme.glass-bottom 100%);
+        border-width: 1px;
+        border-color: Theme.glass-rim;
+        drop-shadow-blur: Theme.glass-blur;
+        drop-shadow-color: #00000055;
+        drop-shadow-offset-y: 4px;
+        HorizontalLayout {
+            alignment: center;
+            spacing: 7px;
+            VerticalLayout {
+                alignment: center;
+                Image {
+                    source: @image-url("../icons/sparkles.svg");
+                    width: 15px;
+                    height: 15px;
+                    colorize: #ffffff;
+                }
+            }
+            Text {
+                text: "Liquid Glass";
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: 650;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+component AppSettingsMain {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/sparkles.svg");
+            tint: Tints.purple;
+            title: @tr("Ajustes de la app");
+            description: @tr("Personalizá cómo se ve y se mueve LiquidControl: tema, acento, tamaño, animaciones y Liquid Glass.");
+        }
+        Section {
+            title: @tr("Apariencia");
+            SegmentedRow {
+                first: true;
+                label: @tr("Tema");
+                labels: [@tr("Sistema"), @tr("Claro"), @tr("Oscuro")];
+                selected: AppSettingsState.theme;
+                segmented-width: 240px;
+                activated(index) => { AppSettingsState.set-theme(index); }
+            }
+            SwatchRow {
+                label: @tr("Color de acento");
+                sub: AppSettingsState.accent >= 0 && AppSettingsState.accent < AppSettingsState.accent-labels.length
+                    ? AppSettingsState.accent-labels[AppSettingsState.accent] : "";
+                colors: AppSettingsState.accent-colors;
+                labels: AppSettingsState.accent-labels;
+                glass-index: AppSettingsState.accent-glass-index;
+                selected: AppSettingsState.accent;
+                activated(index) => { AppSettingsState.set-accent(index); }
+            }
+        }
+        GlassPreview { }
+        Section {
+            title: @tr("Tamaño y movimiento");
+            footer: @tr("El tamaño agranda o achica todo junto (texto, íconos y controles), por encima de la escala de Windows.");
+            SegmentedRow {
+                first: true;
+                label: @tr("Tamaño de la interfaz");
+                highlighted: Nav.highlight == "zoom";
+                labels: ["90 %", "100 %", "115 %", "130 %"];
+                selected: AppSettingsState.zoom;
+                segmented-width: 320px;
+                activated(index) => { AppSettingsState.set-zoom(index); }
+            }
+            SegmentedRow {
+                label: @tr("Animaciones");
+                highlighted: Nav.highlight == "glass";
+                labels: [@tr("Ninguna"), @tr("Suaves"), @tr("Normales"), @tr("Máximas")];
+                selected: AppSettingsState.motion;
+                segmented-width: 320px;
+                activated(index) => { AppSettingsState.set-motion(index); }
+            }
+            SliderRow {
+                label: "Liquid Glass";
+                sub: AppSettingsState.glass < 5 ? @tr("Superficies opacas, sin reflejos.")
+                    : AppSettingsState.glass > 100 ? @tr("Reflejos, bordes y sombras exagerados.")
+                    : @tr("Reflejos y bordes de vidrio sobre las superficies.");
+                highlighted: Nav.highlight == "glass";
+                value-text: Math.round(AppSettingsState.glass) + " %";
+                value: AppSettingsState.glass;
+                minimum: 0;
+                maximum: 150;
+                step: 5;
+                slider-width: 220px;
+                moved(value) => { AppSettingsState.glass-moved(value); }
+                released(value) => { AppSettingsState.glass-released(value); }
+            }
+        }
+        Section {
+            title: @tr("Ventana");
+            SegmentedRow {
+                first: true;
+                label: @tr("Botones de la ventana");
+                sub: @tr("Semáforo de macOS a la izquierda o botones de Windows a la derecha.");
+                labels: ["macOS", "Windows"];
+                selected: AppSettingsState.controls;
+                segmented-width: 180px;
+                activated(index) => { AppSettingsState.set-controls(index); }
+            }
+            SegmentedRow {
+                label: @tr("Esquinas de la ventana");
+                sub: @tr("macOS: más redondeadas. Windows no suaviza el borde de las formas personalizadas ni les dibuja sombra.");
+                labels: ["Windows", "macOS"];
+                selected: AppSettingsState.corners;
+                segmented-width: 180px;
+                activated(index) => { AppSettingsState.set-corners(index); }
+            }
+        }
+        Section {
+            title: @tr("Actividad y conexiones");
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/terminal.svg");
+                tint: Tints.graphite;
+                label: @tr("Consola de actividad");
+                sub: @tr("Cada acción de LiquidControl: qué cambió en el sistema, con qué comando y si funcionó.");
+                clickable: true;
+                highlighted: Nav.highlight == "console";
+                clicked => { Nav.open("app", "console", ""); }
+            }
+            Row {
+                label: @tr("Descargar íconos del catálogo de apps");
+                sub: @tr("Toma el ícono público del sitio oficial de cada app una sola vez y lo guarda. Desactivado, LiquidControl no se conecta a esos sitios.");
+                toggle: true;
+                checked: AppSettingsState.catalog-icons;
+                toggled(value) => { AppSettingsState.set-catalog-icons(value); }
+            }
+        }
+        Section {
+            title: @tr("Datos");
+            footer: @tr("Con un archivo «portable.txt» junto al .exe, LiquidControl guarda todo en la carpeta «data» de al lado (ideal para un pendrive).");
+            Row {
+                first: true;
+                label: @tr("Modo portable");
+                value: AppSettingsState.portable ? @tr("Activado") : @tr("Desactivado");
+            }
+            Row {
+                label: @tr("Carpeta de datos");
+                sub: AppSettingsState.data-folder;
+                clickable: true;
+                external: true;
+                clicked => { AppSettingsState.open-data-folder(); }
+            }
+        }
+        Section {
+            title: @tr("Acerca de LiquidControl");
+            Row {
+                first: true;
+                label: @tr("Versión");
+                value: App.version;
+            }
+            Row {
+                label: @tr("Tecnología");
+                value: "Rust · Slint";
+            }
+            if !App.admin: Row {
+                label: @tr("Reiniciar como administrador");
+                sub: @tr("Algunos ajustes del sistema lo necesitan.");
+                clickable: true;
+                clicked => { App.relaunch-admin(); }
+            }
+        }
+    }
+}
+
+export component AppSettingsPane {
+    VerticalLayout {
+        if Nav.sub == "console": ConsolePane { }
+        if Nav.sub != "console": AppSettingsMain { }
+    }
+}

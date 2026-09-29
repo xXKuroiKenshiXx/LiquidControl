@@ -1,0 +1,105 @@
+// Desplazamiento vertical con una barra fina que solo aparece mientras se usa
+// (como en macOS): nunca ocupa espacio fijo ni corta con el resto de la
+// interfaz. El desplazamiento en sí (rueda, trackpad, arrastrar el contenido)
+// lo maneja `Flickable` de forma nativa; esta barra es además arrastrable.
+//
+// Usa `@children` porque envuelve contenido único por lugar donde se usa (el
+// área de contenido, la barra lateral): no se repite cientos de veces como
+// las filas, así que no pesa en el código generado.
+
+import { Theme } from "../theme.slint";
+
+export component ScrollArea inherits Rectangle {
+    in property <length> inset-top: 0px;
+    in property <length> inset-bottom: 0px;
+    in property <length> inset-left: 0px;
+    in property <length> inset-right: 0px;
+    in property <length> spacing: 0px;
+    in-out property <length> viewport-y <=> flick.viewport-y;
+
+    property <bool> thumb-shown: false;
+    // No se puede leer `drag.pressed` desde afuera del `if` donde vive: se
+    // refleja acá para que el temporizador de abajo la pueda usar.
+    property <bool> dragging: false;
+    property <bool> can-scroll: inner.preferred-height > flick.height;
+    property <length> track-height: max(0px, root.height - 8px);
+    property <length> thumb-height: root.can-scroll ? max(28px, root.track-height * flick.height / inner.preferred-height) : 0px;
+    property <length> thumb-travel: max(0px, root.track-height - root.thumb-height);
+    property <length> scroll-range: max(1px, inner.preferred-height - flick.height);
+    property <float> scroll-ratio: root.can-scroll ? clamp(-flick.viewport-y / root.scroll-range, 0, 1) : 0;
+
+    clip: true;
+    background: transparent;
+
+    flick := Flickable {
+        width: 100%;
+        height: 100%;
+        viewport-width: self.width;
+        viewport-height: inner.preferred-height;
+        changed viewport-y => { root.bump(); }
+
+        inner := VerticalLayout {
+            width: flick.width;
+            spacing: root.spacing;
+            padding-top: root.inset-top;
+            padding-bottom: root.inset-bottom;
+            padding-left: root.inset-left;
+            padding-right: root.inset-right;
+            @children
+        }
+    }
+
+    function bump() {
+        root.thumb-shown = true;
+        idle.restart();
+    }
+    idle := Timer {
+        interval: 900ms;
+        running: root.thumb-shown && !root.dragging;
+        triggered => { root.thumb-shown = false; }
+    }
+
+    if root.can-scroll: Rectangle {
+        x: parent.width - 9px;
+        y: 4px;
+        width: 9px;
+        height: root.track-height;
+        opacity: root.thumb-shown || drag.has-hover || drag.pressed ? 1 : 0;
+        animate opacity { duration: 220ms; }
+
+        thumb := Rectangle {
+            y: root.thumb-travel * root.scroll-ratio;
+            width: drag.has-hover || drag.pressed ? 6px : 4px;
+            x: (parent.width - self.width) / 2;
+            height: root.thumb-height;
+            border-radius: self.width / 2;
+            background: Theme.label3.with-alpha(drag.pressed ? 0.6 : drag.has-hover ? 0.5 : 0.32);
+            animate width { duration: 150ms; easing: ease-out; }
+        }
+
+        drag := TouchArea {
+            width: 100%;
+            height: 100%;
+            property <length> start-mouse-y;
+            property <length> start-viewport-y;
+            property <float> px-per-content: root.thumb-travel > 0px ? root.scroll-range / root.thumb-travel : 0;
+            pointer-event(event) => {
+                if event.kind == PointerEventKind.down {
+                    self.start-mouse-y = self.mouse-y;
+                    self.start-viewport-y = flick.viewport-y;
+                    root.dragging = true;
+                } else if event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel {
+                    root.dragging = false;
+                }
+            }
+            moved => {
+                if self.pressed {
+                    flick.viewport-y = clamp(
+                        self.start-viewport-y - (self.mouse-y - self.start-mouse-y) * self.px-per-content,
+                        -root.scroll-range,
+                        0px);
+                }
+            }
+        }
+    }
+}

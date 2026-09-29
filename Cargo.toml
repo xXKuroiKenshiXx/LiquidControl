@@ -1,0 +1,106 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/app"]
+
+[workspace.package]
+version = "0.5.0"
+edition = "2024"
+rust-version = "1.85"
+authors = ["kuro"]
+license = "GPL-3.0-only"
+publish = false
+repository = "https://github.com/xXKuroiKenshiXx/LiquidControl"
+
+[workspace.dependencies]
+liquidcontrol-core = { path = "crates/core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+base64 = "0.22"
+log = "0.4"
+winreg = "0.55"
+# Lo usa el macro `#[interface]` de `windows` para declarar interfaces COM propias.
+windows-core = "0.61"
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Authentication_Identity",
+  "Win32_Security_Authorization",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Memory",
+  "Win32_System_Ole",
+  "Win32_System_TaskScheduler",
+  "Win32_System_Variant",
+  "Win32_System_Threading",
+  "Win32_System_SystemInformation",
+  "Win32_System_Power",
+  "Win32_System_Registry",
+  "Win32_System_Services",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_Environment",
+  "Win32_Storage_FileSystem",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_Accessibility",
+  "Win32_UI_Controls",
+  "Win32_UI_HiDpi",
+  "Win32_UI_Shell",
+  "Win32_UI_Shell_Common",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
+  "Win32_Graphics_Imaging",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+  "Win32_Devices_Display",
+  "Win32_Devices_FunctionDiscovery",
+  "Win32_Media_Audio",
+  "Win32_Media_Audio_Endpoints",
+  "Win32_NetworkManagement_WiFi",
+  "Win32_NetworkManagement_IpHelper",
+  "Win32_NetworkManagement_Ndis",
+  "Win32_Networking_WinHttp",
+  "Win32_Networking_WinSock",
+  "Win32_System_DataExchange",
+  "Foundation",
+  "Foundation_Collections",
+  "Devices_Radios",
+  "Devices_Enumeration",
+  "Devices_Bluetooth",
+  "ApplicationModel",
+  "ApplicationModel_Core",
+  "Management_Deployment",
+] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+codegen-units = 1
+# LTO "thin": casi el mismo resultado que el completo con mucha menos memoria al compilar.
+lto = "thin"
+opt-level = 3
+panic = "abort"
+strip = true
+
+# La interfaz trae mucho código generado por Slint: en varias unidades y optimizada
+# por tamaño, rustc la compila sin agotar la memoria y el ejecutable queda más chico.
+[profile.release.package.liquidcontrol]
+codegen-units = 16
+opt-level = "s"
+
+# En desarrollo, las dependencias optimizadas: la interfaz responde fluida.
+[profile.dev.package."*"]
+opt-level = 2
+
+# Configuración para compilar con mínimo uso de memoria
+[profile.dev]
+codegen-units = 256
+incremental = true
+debug = 0
+opt-level = 0

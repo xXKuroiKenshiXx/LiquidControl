@@ -1,0 +1,142 @@
+// Panel Cuenta de Windows: perfil, tipo de cuenta, inicio de sesión e iCloud
+// (subpágina).
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { Button, Row, Section } from "../widgets/basics.slint";
+import { ICloudPage, ICloudState, PhotosAllPage } from "icloud.slint";
+
+export global AccountState {
+    in property <string> user-name;
+    in property <string> email;
+    in property <bool> microsoft;
+}
+
+component AccountMain {
+    VerticalLayout {
+        spacing: 22px;
+        VerticalLayout {
+            spacing: 4px;
+            padding-top: 8px;
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 84px;
+                    height: 84px;
+                    border-radius: 42px;
+                    clip: true;
+                    background: @linear-gradient(180deg, #b4b4ba 0%, #86868d 100%);
+                    drop-shadow-blur: 6px * Theme.glass;
+                    drop-shadow-color: Theme.shadow;
+                    if App.has-avatar: Image {
+                        width: 100%;
+                        height: 100%;
+                        source: App.avatar;
+                        image-fit: cover;
+                    }
+                    if !App.has-avatar: Text {
+                        text: App.initials;
+                        color: #ffffff;
+                        font-size: 32px;
+                        font-weight: 600;
+                    }
+                }
+            }
+            Text {
+                text: App.user-name;
+                font-size: 21px;
+                font-weight: 700;
+                color: Theme.label;
+                horizontal-alignment: center;
+            }
+            Text {
+                text: AccountState.email != "" ? AccountState.email : AccountState.user-name;
+                font-size: 12px;
+                color: Theme.label2;
+                horizontal-alignment: center;
+            }
+            HorizontalLayout {
+                alignment: center;
+                padding-top: 8px;
+                Button {
+                    text: @tr("Cambiar foto…");
+                    small: true;
+                    clicked => { App.open-uri("ms-settings:yourinfo"); }
+                }
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/user-round.svg");
+                tint: Tints.gray;
+                label: @tr("Tipo de cuenta");
+                value: App.account-kind;
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/user-round.svg");
+                tint: Tints.gray;
+                label: @tr("Nombre de usuario");
+                value: AccountState.user-name;
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/shield-check.svg");
+                tint: Tints.blue;
+                label: @tr("Esta app se está ejecutando");
+                value: App.admin ? @tr("Como administrador") : @tr("Sin privilegios elevados");
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/key-round.svg");
+                tint: Tints.gray;
+                label: @tr("Opciones de inicio de sesión");
+                sub: @tr("Windows Hello, PIN, llave de seguridad y contraseña.");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:signinoptions"); }
+            }
+            if AccountState.microsoft: Row {
+                has-icon: true;
+                icon: @image-url("../icons/mail.svg");
+                tint: Tints.blue;
+                label: @tr("Administrar la cuenta Microsoft");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("https://account.microsoft.com"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/users.svg");
+                tint: Tints.gray;
+                label: @tr("Otros usuarios");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:otherusers"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/cloud.svg");
+                tint: Tints.cyan;
+                label: "iCloud";
+                sub: @tr("Fotos, iCloud Drive y contraseñas de tu cuenta de Apple.");
+                clickable: true;
+                highlighted: Nav.highlight == "icloud";
+                clicked => { Nav.open("account", "icloud", ""); }
+            }
+        }
+    }
+}
+
+export component AccountPane {
+    VerticalLayout {
+        if Nav.sub == "icloud": ICloudPage { }
+        if Nav.sub == "icloud-photos": PhotosAllPage { }
+        if Nav.sub != "icloud" && Nav.sub != "icloud-photos": AccountMain { }
+    }
+}

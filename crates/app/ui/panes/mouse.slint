@@ -1,0 +1,154 @@
+// Panel Mouse: velocidad, botones, desplazamiento y tamaño del puntero.
+
+import { Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, Row, Section, SegmentedRow, SliderRow } from "../widgets/basics.slint";
+import { AdminNotice } from "../widgets/notice.slint";
+
+export global MouseState {
+    in property <bool> loaded;
+    // 1–20
+    in property <int> speed;
+    in property <bool> precision;
+    in property <bool> swap-buttons;
+    // Milisegundos entre clics (200–900)
+    in property <int> double-click;
+    in property <int> wheel-lines;
+    in property <bool> scroll-inactive;
+    // Tamaño del puntero de Windows: niveles 1–15 (32–256 px)
+    in property <int> cursor-level;
+    in property <bool> natural-available;
+    in property <bool> natural-scroll;
+    // Menús y vistas previas instantáneos (el mismo ajuste de Optimización,
+    // "optimize.instant_menus"): sin la demora de 400 ms al pasar el
+    // puntero por un submenú o sobre un ícono de la barra de tareas.
+    in property <bool> instant-menus;
+    in property <bool> instant-menus-busy;
+    // Clave del ajuste y valor (los interruptores mandan 0 o 1).
+    callback set(string, int);
+    callback set-instant-menus(bool);
+}
+
+export component MousePane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/mouse.svg");
+            tint: Tints.gray;
+            title: @tr("Mouse");
+            description: @tr("Ajustá la velocidad del puntero, el doble clic y cómo se desplaza el contenido.");
+        }
+        if MouseState.loaded: Section {
+            SliderRow {
+                first: true;
+                label: @tr("Velocidad del puntero");
+                value: MouseState.speed;
+                minimum: 1;
+                maximum: 20;
+                ticks: 10;
+                min-label: @tr("Lenta");
+                max-label: @tr("Rápida");
+                released(value) => { MouseState.set("speed", Math.round(value)); }
+            }
+            Row {
+                label: @tr("Mejorar la precisión del puntero");
+                sub: @tr("Aceleración: el puntero avanza más cuanto más rápido movés el mouse. Los gamers suelen desactivarla.");
+                toggle: true;
+                checked: MouseState.precision;
+                toggled(value) => { MouseState.set("precision", value ? 1 : 0); }
+            }
+            SegmentedRow {
+                label: @tr("Botón principal");
+                labels: [@tr("Izquierdo"), @tr("Derecho")];
+                selected: MouseState.swap-buttons ? 1 : 0;
+                segmented-width: 180px;
+                activated(index) => { MouseState.set("swap", index); }
+            }
+            // El deslizador va de lento a rápido: el tiempo entre clics es el inverso.
+            SliderRow {
+                label: @tr("Velocidad del doble clic");
+                value: 1100 - MouseState.double-click;
+                minimum: 200;
+                maximum: 900;
+                step: 50;
+                ticks: 8;
+                min-label: @tr("Lenta");
+                max-label: @tr("Rápida");
+                released(value) => { MouseState.set("double-click", 1100 - Math.round(value)); }
+            }
+        }
+        if MouseState.loaded: Section {
+            title: @tr("Desplazamiento");
+            Row {
+                first: true;
+                label: @tr("Desplazamiento natural");
+                sub: MouseState.natural-available
+                    ? @tr("Como en macOS: el contenido sigue la dirección de la rueda. Se aplica al volver a conectar el mouse.")
+                    : @tr("No se detectó un mouse compatible.");
+                highlighted: Nav.highlight == "natural-scroll";
+                toggle: true;
+                checked: MouseState.natural-scroll;
+                toggle-enabled: MouseState.natural-available;
+                toggled(value) => { MouseState.set("natural", value ? 1 : 0); }
+            }
+            SliderRow {
+                label: @tr("Líneas por paso de la rueda");
+                value-text: MouseState.wheel-lines;
+                value: MouseState.wheel-lines;
+                minimum: 1;
+                maximum: 20;
+                slider-width: 160px;
+                released(value) => { MouseState.set("wheel", Math.round(value)); }
+            }
+            Row {
+                label: @tr("Desplazar ventanas inactivas al pasar el puntero");
+                toggle: true;
+                checked: MouseState.scroll-inactive;
+                toggled(value) => { MouseState.set("scroll-inactive", value ? 1 : 0); }
+            }
+        }
+        if MouseState.loaded: Section {
+            title: @tr("Puntero");
+            // Vista previa que crece con el nivel elegido.
+            SliderRow {
+                first: true;
+                label: @tr("Tamaño del puntero");
+                has-start-icon: true;
+                start-icon: @image-url("../icons/mouse-pointer-2.svg");
+                start-icon-size: 11px + MouseState.cursor-level * 1.3px;
+                start-icon-box: 32px;
+                value: MouseState.cursor-level;
+                minimum: 1;
+                maximum: 15;
+                ticks: 15;
+                min-label: @tr("Normal");
+                max-label: @tr("Grande");
+                released(value) => { MouseState.set("cursor", Math.round(value)); }
+            }
+        }
+        if MouseState.loaded: Section {
+            title: @tr("Menús");
+            Row {
+                first: true;
+                label: @tr("Menús y vistas previas instantáneos");
+                sub: @tr("Sin demora al abrir un submenú o al pasar el puntero sobre un ícono de la barra de tareas. Se nota del todo después de cerrar sesión.");
+                toggle: true;
+                checked: MouseState.instant-menus;
+                toggle-enabled: !MouseState.instant-menus-busy;
+                toggled(value) => { MouseState.set-instant-menus(value); }
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                label: @tr("Más opciones del mouse y del panel táctil");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:mousetouchpad"); }
+            }
+        }
+        if !App.admin: AdminNotice {
+            text: @tr("El desplazamiento natural requiere permisos de administrador.");
+        }
+    }
+}

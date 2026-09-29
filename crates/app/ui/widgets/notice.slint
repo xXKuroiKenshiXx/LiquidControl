@@ -1,0 +1,79 @@
+// Avisos: candado de administrador y estado vacío de un panel.
+
+import { Theme } from "../theme.slint";
+import { App } from "../globals.slint";
+import { Button } from "basics.slint";
+
+// Panel sin contenido (p. ej. sin adaptador): ícono grande, texto y acciones (@children).
+export component EmptyState {
+    in property <image> icon;
+    in property <string> text;
+    VerticalLayout {
+        padding-top: 36px;
+        padding-bottom: 36px;
+        spacing: 12px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 36px;
+                height: 36px;
+                colorize: Theme.label2;
+            }
+        }
+        Text {
+            text: root.text;
+            color: Theme.label2;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        @children
+    }
+}
+
+export component AdminNotice inherits Rectangle {
+    in property <string> text: @tr("Algunos ajustes de este panel requieren permisos de administrador.");
+
+    border-radius: Theme.radius-group;
+    background: Theme.group;
+    border-width: 1px;
+    border-color: Theme.group-border;
+
+    HorizontalLayout {
+        padding: 10px;
+        padding-left: 12px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 24px;
+                height: 24px;
+                border-radius: 12px;
+                background: Theme.field;
+                Image {
+                    source: @image-url("../icons/lock.svg");
+                    width: 13px;
+                    height: 13px;
+                    colorize: Theme.label;
+                }
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: 12px;
+            color: Theme.label2;
+            wrap: word-wrap;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: @tr("Reiniciar como administrador");
+                small: true;
+                clicked => { App.relaunch-admin(); }
+            }
+        }
+    }
+}

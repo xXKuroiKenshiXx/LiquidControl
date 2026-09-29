@@ -1,0 +1,55 @@
+// Mezclador de volumen por app (sección del panel Sonido).
+
+import { Tints } from "../theme.slint";
+import { Row, Section, SliderRow } from "../widgets/basics.slint";
+
+export struct MixerAppView {
+    key: string,
+    name: string,
+    letter: string,
+    icon: image,
+    has-icon: bool,
+    tint: int,
+    // 0–100
+    volume: float,
+    muted: bool,
+    // Está sonando ahora
+    active: bool,
+}
+
+export global MixerState {
+    in property <bool> loaded;
+    in property <[MixerAppView]> apps;
+    // En vivo mientras se arrastra y al soltar.
+    callback volume-moved(string, float);
+    callback volume-released(string, float);
+    callback set-mute(string, bool);
+}
+
+export component MixerSection {
+    Section {
+        title: @tr("Volumen por app");
+        footer: @tr("Aparecen las apps que tienen el audio abierto. El volumen de cada una es relativo al volumen general.");
+        for item[i] in MixerState.apps: SliderRow {
+            first: i == 0;
+            leading-app: true;
+            app-icon: item.icon;
+            app-icon-set: item.has-icon;
+            app-letter: item.letter;
+            tint: Tints.palette[Math.mod(item.tint, Tints.palette.length)];
+            label: item.name;
+            sub: item.active ? @tr("Reproduciendo") : "";
+            mute-button: true;
+            muted: item.muted;
+            value: item.volume;
+            slider-width: 190px;
+            moved(value) => { MixerState.volume-moved(item.key, value); }
+            released(value) => { MixerState.volume-released(item.key, value); }
+            mute-toggled(muted) => { MixerState.set-mute(item.key, muted); }
+        }
+        if MixerState.loaded && MixerState.apps.length == 0: Row {
+            first: true;
+            label: @tr("Ninguna app tiene el audio abierto ahora.");
+        }
+    }
+}

@@ -1,0 +1,211 @@
+// Área de contenido: barra de herramientas (cápsula Atrás/Adelante y título)
+// sobre la página del panel activo, que se desplaza por debajo y entra con una
+// animación suave en cada navegación.
+
+import { Theme } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { FluentControls } from "window-controls.slint";
+import { ScrollArea } from "../widgets/scroll-area.slint";
+import { GeneralPane } from "../panes/general.slint";
+import { AppearancePane } from "../panes/appearance.slint";
+import { WallpaperPane } from "../panes/wallpaper.slint";
+import { AccessibilityPane } from "../panes/accessibility.slint";
+import { DesktopPane } from "../panes/desktop.slint";
+import { PrivacyPane } from "../panes/privacy.slint";
+import { SecurityPane } from "../panes/security.slint";
+import { OptimizePane } from "../panes/optimize.slint";
+import { GamingPane } from "../panes/gaming.slint";
+import { MousePane } from "../panes/mouse.slint";
+import { KeyboardPane } from "../panes/keyboard.slint";
+import { SoundPane } from "../panes/sound.slint";
+import { NotificationsPane } from "../panes/notifications.slint";
+import { EnergyPane } from "../panes/energy.slint";
+import { DisplaysPane } from "../panes/displays.slint";
+import { WifiPane } from "../panes/wifi.slint";
+import { AirdropPane } from "../panes/airdrop.slint";
+import { BluetoothPane } from "../panes/bluetooth.slint";
+import { NetworkPane } from "../panes/network.slint";
+import { AccountPane } from "../panes/account.slint";
+import { AppsPane } from "../panes/apps.slint";
+import { AppSettingsPane } from "../panes/app-settings.slint";
+
+component NavButton inherits Rectangle {
+    in property <image> icon;
+    in property <bool> enabled;
+    in property <string> label;
+    callback clicked();
+    width: 32px;
+    height: 28px;
+    border-radius: 14px;
+    background: touch.has-hover && root.enabled ? Theme.hover : transparent;
+    accessible-role: button;
+    accessible-label: root.label;
+    transform-scale-x: touch.pressed && root.enabled ? 1 - 2 * Theme.squish : 1;
+    transform-scale-y: touch.pressed && root.enabled ? 1 - 2 * Theme.squish : 1;
+    animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+    Image {
+        source: root.icon;
+        width: 17px;
+        height: 17px;
+        colorize: root.enabled ? Theme.label : Theme.label3;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Cápsula de vidrio con Atrás / Adelante.
+component NavCapsule inherits Rectangle {
+    width: 70px;
+    height: 32px;
+    border-radius: 16px;
+    background: @linear-gradient(180deg, Theme.glass-top 0%, Theme.glass-bottom 100%);
+    border-width: 1px;
+    border-color: Theme.glass-rim.with-alpha(Theme.dark ? 0.35 : 0.9);
+    drop-shadow-blur: 6px + 6px * Theme.glass;
+    drop-shadow-color: Theme.shadow;
+    drop-shadow-offset-y: 2px;
+    HorizontalLayout {
+        padding-left: 2px;
+        padding-right: 2px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            NavButton {
+                icon: @image-url("../icons/chevron-left.svg");
+                enabled: Nav.can-back;
+                label: @tr("Atrás");
+                clicked => { Nav.back(); }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Rectangle { width: 1px; height: 16px; background: Theme.separator; }
+        }
+        VerticalLayout {
+            alignment: center;
+            NavButton {
+                icon: @image-url("../icons/chevron-right.svg");
+                enabled: Nav.can-forward;
+                label: @tr("Adelante");
+                clicked => { Nav.forward(); }
+            }
+        }
+    }
+}
+
+export component ContentArea inherits Rectangle {
+    background: Theme.content;
+
+    // Cada navegación arranca arriba de todo y la página entra con un fundido
+    // y un leve zoom (su intensidad sigue a Theme.motion; 0 = sin animación).
+    property <string> location: Nav.pane + "/" + Nav.sub;
+    property <bool> settled: true;
+    property <float> reveal: root.settled ? 1 : 0;
+    animate reveal {
+        duration: root.settled ? Theme.smooth : 0ms;
+        easing: cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    changed location => {
+        scroll.viewport-y = 0;
+        root.settled = false;
+    }
+    Timer {
+        interval: 16ms;
+        running: !root.settled;
+        triggered => { root.settled = true; }
+    }
+
+    scroll := ScrollArea {
+        y: 54px;
+        height: root.height - 54px;
+        inset-top: 6px;
+        inset-bottom: 36px;
+        inset-left: 26px;
+        inset-right: 26px;
+        // Causa raíz real (encontrada con un experimento de fondo rojo,
+        // después de MUCHOS intentos fallidos): un hijo de `HorizontalLayout`
+        // o `VerticalLayout` se estira al ancho completo del contenedor por
+        // más que tenga `width` fijo, salvo que se le ponga
+        // `horizontal-stretch: 0` — eso faltaba en todos los intentos
+        // anteriores. Envolver esto en un `HorizontalLayout` con
+        // espaciadores a los costados (para centrar) volvió a romper el
+        // límite de ancho por algún motivo no del todo claro; esta versión
+        // sin ese envoltorio, centrando a mano contra `root.width`, es la
+        // que se verificó con capturas que no corta ninguna fila ancha (el
+        // margen queda unos 10px más grande de un lado que del otro, un
+        // desvío menor que no vale la pena seguir persiguiendo).
+        Rectangle {
+            width: min(700px, root.width - scroll.inset-left - scroll.inset-right);
+            x: (root.width - self.width) / 2;
+            horizontal-stretch: 0;
+            clip: true;
+            opacity: 0.2 + 0.8 * root.reveal;
+            transform-scale-x: 1 - Theme.reveal-depth * (1 - root.reveal);
+            transform-scale-y: 1 - Theme.reveal-depth * (1 - root.reveal);
+            VerticalLayout {
+                // Solo existe el panel visible: los demás no ocupan memoria.
+                if Nav.pane == "general": GeneralPane { }
+                if Nav.pane == "appearance": AppearancePane { }
+                if Nav.pane == "wallpaper": WallpaperPane { }
+                if Nav.pane == "accessibility": AccessibilityPane { }
+                if Nav.pane == "desktop": DesktopPane { }
+                if Nav.pane == "security": SecurityPane { }
+                if Nav.pane == "privacy": PrivacyPane { }
+                if Nav.pane == "optimize": OptimizePane { }
+                if Nav.pane == "gaming": GamingPane { }
+                if Nav.pane == "mouse": MousePane { }
+                if Nav.pane == "keyboard": KeyboardPane { }
+                if Nav.pane == "sound": SoundPane { }
+                if Nav.pane == "notifications": NotificationsPane { }
+                if Nav.pane == "energy": EnergyPane { }
+                if Nav.pane == "displays": DisplaysPane { }
+                if Nav.pane == "wifi": WifiPane { }
+                if Nav.pane == "airdrop": AirdropPane { }
+                if Nav.pane == "bluetooth": BluetoothPane { }
+                if Nav.pane == "network": NetworkPane { }
+                if Nav.pane == "account": AccountPane { }
+                if Nav.pane == "apps": AppsPane { }
+                if Nav.pane == "app": AppSettingsPane { }
+            }
+        }
+    }
+    // Barra de herramientas: también es zona de arrastre de la ventana.
+    Rectangle {
+        y: 0;
+        height: 54px;
+        background: scroll.viewport-y < 0px ? Theme.content.with-alpha(0.96) : transparent;
+        animate background { duration: Theme.quick; }
+        TouchArea {
+            // Se arrastra recién cuando el puntero se mueve: así el doble clic sigue funcionando.
+            moved => { if self.pressed { App.window-drag(); } }
+            double-clicked => { App.window-maximize(); }
+        }
+        HorizontalLayout {
+            padding-left: 16px;
+            spacing: 12px;
+            alignment: start;
+            VerticalLayout {
+                alignment: center;
+                NavCapsule { }
+            }
+            Text {
+                text: Nav.title;
+                font-size: 15px;
+                font-weight: 650;
+                color: Theme.label;
+                vertical-alignment: center;
+            }
+        }
+        if !App.mac-controls: FluentControls {
+            x: parent.width - self.width;
+            y: 0;
+        }
+        if scroll.viewport-y < 0px: Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.separator;
+        }
+    }
+}

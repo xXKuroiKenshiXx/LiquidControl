@@ -1,0 +1,42 @@
+// Panel Privacidad y seguridad.
+
+import { Tints } from "../theme.slint";
+import { App } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { TweakList, TweaksState } from "../widgets/tweaks.slint";
+
+export component PrivacyPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/hand.svg");
+            tint: Tints.blue;
+            title: @tr("Privacidad y seguridad");
+            description: @tr("Controlá qué datos comparte Windows y a qué pueden acceder las apps. Cada ajuste muestra su estado real y se puede revertir.");
+        }
+        Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/shield-check.svg");
+                tint: Tints.red;
+                label: @tr("Seguridad de Windows");
+                sub: @tr("Antivirus, firewall, protección de la cuenta y del dispositivo.");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("windowsdefender://threat"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/list-checks.svg");
+                tint: Tints.blue;
+                label: @tr("Permisos por app");
+                sub: @tr("Elegí app por app quién usa la cámara, el micrófono o la ubicación.");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:privacy"); }
+            }
+        }
+        TweakList { category: TweaksState.privacy; }
+    }
+}

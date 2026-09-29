@@ -1,0 +1,205 @@
+// Panel Energía: batería, planes de energía (elegir, crear, renombrar, borrar y
+// restaurar), tiempos de espera e hibernación.
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, PopupRow, Row, Section } from "../widgets/basics.slint";
+import { AdminNotice } from "../widgets/notice.slint";
+
+export struct PlanView {
+    guid: string,
+    name: string,
+    active: bool,
+    ultimate: bool,
+}
+
+export global EnergyState {
+    in property <bool> loaded;
+    in property <bool> has-battery;
+    // 0–100
+    in property <int> battery;
+    in property <string> battery-state;
+    in property <[PlanView]> plans;
+    in property <bool> has-ultimate;
+    in property <bool> hibernate;
+    in property <[string]> minute-labels;
+    // Índices dentro de minute-labels.
+    in property <int> screen-ac;
+    in property <int> screen-dc;
+    in property <int> sleep-ac;
+    in property <int> sleep-dc;
+    callback set-plan(string);
+    callback add-ultimate();
+    callback new-plan();
+    callback rename-plan(string);
+    callback delete-plan(string);
+    callback restore-plans();
+    // "screen-ac", "screen-dc", "sleep-ac" o "sleep-dc" y el índice de la opción
+    callback set-timeout(string, int);
+    callback set-hibernate(bool);
+}
+
+component BatteryCard inherits Rectangle {
+    border-radius: Theme.radius-group;
+    background: @linear-gradient(180deg, Theme.group-top 0%, Theme.group 70%);
+    border-width: 1px;
+    border-color: Theme.group-border;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            Text {
+                text: EnergyState.battery + " %";
+                font-size: 26px;
+                font-weight: 700;
+                color: Theme.label;
+            }
+            Text {
+                text: EnergyState.battery-state;
+                color: Theme.label2;
+                vertical-alignment: bottom;
+            }
+        }
+        Rectangle {
+            height: 12px;
+            border-radius: 6px;
+            background: Theme.field;
+            clip: true;
+            Rectangle {
+                x: 0;
+                width: parent.width * EnergyState.battery / 100;
+                border-radius: 6px;
+                background: EnergyState.battery <= 20
+                    ? @linear-gradient(90deg, #ff453a 0%, #ff9f0a 100%)
+                    : @linear-gradient(90deg, #30d158 0%, #34c759 100%);
+                animate width { duration: Theme.bouncy; easing: cubic-bezier(0.34, 1.3, 0.64, 1); }
+            }
+        }
+    }
+}
+
+export component EnergyPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/battery-charging.svg");
+            tint: Tints.green;
+            title: @tr("Energía");
+            description: @tr("Elegí, creá o borrá planes de energía y decidí cuándo se apagan la pantalla y la PC.");
+        }
+        if EnergyState.loaded && EnergyState.has-battery: BatteryCard { }
+        if EnergyState.loaded: Section {
+            title: @tr("Plan de energía");
+            footer: @tr("Tocá un plan para usarlo. El plan en uso no se puede eliminar: elegí otro primero.");
+            for plan[i] in EnergyState.plans: Row {
+                first: i == 0;
+                has-icon: true;
+                icon: @image-url("../icons/zap.svg");
+                tint: plan.ultimate ? Tints.orange : Tints.green;
+                label: plan.name;
+                sub: plan.active ? @tr("En uso") : "";
+                highlighted: Nav.highlight == "plans" && plan.active;
+                clickable: !plan.active;
+                chevron: false;
+                button: @tr("Renombrar");
+                button-plain: true;
+                button2: @tr("Eliminar");
+                button2-destructive: true;
+                button2-enabled: !plan.active;
+                radio: plan.active ? 1 : 0;
+                clicked => { EnergyState.set-plan(plan.guid); }
+                button-clicked => { EnergyState.rename-plan(plan.guid); }
+                button2-clicked => { EnergyState.delete-plan(plan.guid); }
+            }
+            // El plan oculto aparece atenuado hasta que se agrega (al tocarlo se agrega y se activa).
+            if !EnergyState.has-ultimate: Row {
+                has-icon: true;
+                icon: @image-url("../icons/zap.svg");
+                tint: Tints.gray;
+                label: @tr("Máximo rendimiento");
+                sub: @tr("No está agregado en esta PC. Tocá para agregarlo y usarlo (consume más energía).");
+                dimmed: true;
+                clickable: true;
+                chevron: false;
+                radio: 0;
+                clicked => { EnergyState.add-ultimate(); }
+            }
+            Row {
+                has-glyph: true;
+                glyph: @image-url("../icons/plus.svg");
+                label: @tr("Nuevo plan…");
+                sub: @tr("Copia la configuración del plan en uso.");
+                clickable: true;
+                chevron: false;
+                clicked => { EnergyState.new-plan(); }
+            }
+        }
+        if EnergyState.loaded: Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/rotate-ccw.svg");
+                tint: Tints.gray;
+                label: @tr("Restaurar planes de fábrica");
+                sub: @tr("Borra los planes personalizados y vuelve a los de Windows.");
+                button: @tr("Restaurar");
+                button-destructive: true;
+                button-clicked => { EnergyState.restore-plans(); }
+            }
+        }
+        if EnergyState.loaded: Section {
+            title: @tr("Apagar la pantalla después de");
+            PopupRow {
+                first: true;
+                label: EnergyState.has-battery ? @tr("Conectada a la corriente") : @tr("Tiempo de inactividad");
+                options: EnergyState.minute-labels;
+                selected: EnergyState.screen-ac;
+                activated(index) => { EnergyState.set-timeout("screen-ac", index); }
+            }
+            if EnergyState.has-battery: PopupRow {
+                label: @tr("Con batería");
+                options: EnergyState.minute-labels;
+                selected: EnergyState.screen-dc;
+                activated(index) => { EnergyState.set-timeout("screen-dc", index); }
+            }
+        }
+        if EnergyState.loaded: Section {
+            title: @tr("Suspender la PC después de");
+            PopupRow {
+                first: true;
+                label: EnergyState.has-battery ? @tr("Conectada a la corriente") : @tr("Tiempo de inactividad");
+                options: EnergyState.minute-labels;
+                selected: EnergyState.sleep-ac;
+                activated(index) => { EnergyState.set-timeout("sleep-ac", index); }
+            }
+            if EnergyState.has-battery: PopupRow {
+                label: @tr("Con batería");
+                options: EnergyState.minute-labels;
+                selected: EnergyState.sleep-dc;
+                activated(index) => { EnergyState.set-timeout("sleep-dc", index); }
+            }
+        }
+        if EnergyState.loaded: Section {
+            Row {
+                first: true;
+                label: @tr("Hibernación");
+                sub: @tr("Guarda la sesión en el disco al apagar. Desactivarla libera el espacio de hiberfil.sys y desactiva el inicio rápido.");
+                toggle: true;
+                checked: EnergyState.hibernate;
+                toggle-enabled: App.admin;
+                toggled(value) => { EnergyState.set-hibernate(value); }
+            }
+            Row {
+                label: @tr("Más opciones de energía");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:powersleep"); }
+            }
+        }
+        if !App.admin: AdminNotice {
+            text: @tr("La hibernación y algunos cambios de planes requieren permisos de administrador.");
+        }
+    }
+}

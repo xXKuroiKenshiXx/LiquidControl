@@ -1,0 +1,136 @@
+// Botones de ventana: semáforo de macOS (izquierda) o botones Fluent de Windows (derecha).
+
+import { Theme } from "../theme.slint";
+import { App } from "../globals.slint";
+
+component Light inherits Rectangle {
+    in property <color> fill;
+    in property <string> glyph;
+    in property <bool> show-glyph;
+    in property <bool> inactive;
+    in property <string> label;
+    callback clicked();
+
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    background: root.inactive ? Theme.label3 : root.fill;
+    border-width: 0.5px;
+    border-color: #0000002e;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.clicked(); }
+
+    if root.show-glyph && root.glyph == "close": Path {
+        width: 8px;
+        height: 8px;
+        viewbox-width: 8;
+        viewbox-height: 8;
+        commands: "M2 2 L6 6 M6 2 L2 6";
+        stroke: #0000008c;
+        stroke-width: 1.2px;
+    }
+    if root.show-glyph && root.glyph == "minimize": Path {
+        width: 8px;
+        height: 8px;
+        viewbox-width: 8;
+        viewbox-height: 8;
+        commands: "M1.6 4 L6.4 4";
+        stroke: #0000008c;
+        stroke-width: 1.2px;
+    }
+    if root.show-glyph && root.glyph == "zoom": Path {
+        width: 8px;
+        height: 8px;
+        viewbox-width: 8;
+        viewbox-height: 8;
+        commands: "M1.8 6.2 L1.8 3 L5 6.2 Z M6.2 1.8 L6.2 5 L3 1.8 Z";
+        fill: #0000008c;
+    }
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Semáforo: cerrar, minimizar y maximizar; los glifos aparecen al pasar el puntero.
+export component TrafficLights {
+    in property <bool> inactive: false;
+    property <bool> hover: area.has-hover;
+
+    width: 52px;
+    height: 12px;
+    area := TouchArea { }
+    HorizontalLayout {
+        spacing: 8px;
+        Light {
+            fill: #ff5f57;
+            glyph: "close";
+            label: @tr("Cerrar");
+            show-glyph: root.hover;
+            inactive: root.inactive && !root.hover;
+            clicked => { App.window-close(); }
+        }
+        Light {
+            fill: #febc2e;
+            glyph: "minimize";
+            label: @tr("Minimizar");
+            show-glyph: root.hover;
+            inactive: root.inactive && !root.hover;
+            clicked => { App.window-minimize(); }
+        }
+        Light {
+            fill: #28c840;
+            glyph: "zoom";
+            label: @tr("Maximizar");
+            show-glyph: root.hover;
+            inactive: root.inactive && !root.hover;
+            clicked => { App.window-maximize(); }
+        }
+    }
+}
+
+component FluentButton inherits Rectangle {
+    in property <string> glyph;
+    in property <bool> danger;
+    in property <string> label;
+    callback clicked();
+
+    width: 46px;
+    background: touch.has-hover ? (root.danger ? #c42b1c : Theme.hover) : transparent;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.clicked(); }
+    Text {
+        text: root.glyph;
+        font-family: "Segoe Fluent Icons";
+        font-size: 10px;
+        color: touch.has-hover && root.danger ? #ffffff : Theme.label;
+    }
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Botones de Windows 11 (minimizar, maximizar/restaurar, cerrar).
+export component FluentControls {
+    width: 3 * 46px;
+    height: 34px;
+    HorizontalLayout {
+        FluentButton {
+            glyph: "\u{E921}";
+            label: @tr("Minimizar");
+            clicked => { App.window-minimize(); }
+        }
+        FluentButton {
+            glyph: App.maximized ? "\u{E923}" : "\u{E922}";
+            label: @tr("Maximizar");
+            clicked => { App.window-maximize(); }
+        }
+        FluentButton {
+            glyph: "\u{E8BB}";
+            danger: true;
+            label: @tr("Cerrar");
+            clicked => { App.window-close(); }
+        }
+    }
+}

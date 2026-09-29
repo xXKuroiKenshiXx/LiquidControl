@@ -1,0 +1,238 @@
+// Panel Aplicaciones: programas instalados (con su ícono), desinstalación
+// profunda (subpágina) y catálogo curado para instalar con winget.
+
+import { Theme, Tints } from "../theme.slint";
+import { Nav } from "../globals.slint";
+import { Button, CompactHeader, PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { PopupButton, SearchField, Segmented } from "../widgets/controls.slint";
+import { EmptyState } from "../widgets/notice.slint";
+
+export struct InstalledAppView {
+    id: string,
+    name: string,
+    detail: string,
+    tint: int,
+    letter: string,
+    icon: image,
+    has-icon: bool,
+    can-uninstall: bool,
+}
+
+export struct CatalogAppView {
+    id: string,
+    name: string,
+    description: string,
+    tint: int,
+    letter: string,
+    icon: image,
+    has-icon: bool,
+    // Se instala desde la Microsoft Store (también con winget).
+    store: bool,
+    installed: bool,
+    busy: bool,
+}
+
+export struct CatalogGroupView {
+    title: string,
+    apps: [CatalogAppView],
+}
+
+export struct LeftoverView {
+    id: int,
+    // 0 = carpeta, 1 = archivo, 2 = clave del registro
+    kind: int,
+    path: string,
+    detail: string,
+    checked: bool,
+}
+
+export global AppsState {
+    in property <bool> loaded;
+    // 0 = Instaladas, 1 = Descubrir
+    in property <int> tab;
+    in-out property <string> query;
+    // 0 = nombre, 1 = tamaño, 2 = fecha
+    in property <int> sort;
+    in property <[InstalledAppView]> installed;
+    in property <string> summary;
+    in property <string> total;
+    in property <[CatalogGroupView]> catalog;
+    in property <bool> winget-loaded;
+    callback set-tab(int);
+    callback set-sort(int);
+    callback query-changed(string);
+    callback uninstall(string);
+    callback install(string);
+
+    // Desinstalación profunda
+    in property <string> cleanup-name;
+    // 0 = esperando al desinstalador, 1 = buscando, 2 = resultados, 3 = eliminando
+    in property <int> cleanup-stage;
+    in property <[LeftoverView]> leftovers;
+    in property <int> leftovers-selected;
+    in property <string> cleanup-summary;
+    callback scan-leftovers();
+    callback toggle-leftover(int, bool);
+    callback select-all-leftovers(bool);
+    callback clean-leftovers();
+}
+
+component CleanupPage {
+    VerticalLayout {
+        spacing: 22px;
+        CompactHeader {
+            icon: @image-url("../icons/eraser.svg");
+            tint: Tints.orange;
+            title: AppsState.cleanup-name;
+            description: AppsState.cleanup-stage == 0
+                ? @tr("Seguí los pasos del desinstalador. Cuando termine, LiquidControl busca solo lo que haya quedado.")
+                : AppsState.cleanup-stage == 1 ? @tr("Buscando carpetas, accesos directos y claves del registro…")
+                : @tr("Elegí qué restos borrar. Los que coinciden con seguridad ya están marcados.");
+            if AppsState.cleanup-stage == 0 || AppsState.cleanup-stage == 2: VerticalLayout {
+                alignment: center;
+                Button {
+                    text: AppsState.cleanup-stage == 0 ? @tr("Buscar restos ahora") : @tr("Buscar de nuevo");
+                    small: true;
+                    clicked => { AppsState.scan-leftovers(); }
+                }
+            }
+        }
+        if AppsState.cleanup-stage == 1: EmptyState {
+            icon: @image-url("../icons/search.svg");
+            text: @tr("Buscando restos…");
+        }
+        if AppsState.cleanup-stage >= 2: Section {
+            title: AppsState.cleanup-summary;
+            action: AppsState.leftovers.length > 0 ? @tr("Marcar todo") : "";
+            action-clicked => { AppsState.select-all-leftovers(true); }
+            footer: @tr("Los archivos y carpetas van a la Papelera. Antes de borrar una clave del registro se guarda una copia (.reg) en la carpeta de datos de LiquidControl.");
+            for item[i] in AppsState.leftovers: Row {
+                first: i == 0;
+                has-glyph: true;
+                glyph: item.kind == 0 ? @image-url("../icons/folder.svg")
+                    : item.kind == 1 ? @image-url("../icons/file.svg")
+                    : @image-url("../icons/database.svg");
+                label: item.path;
+                sub: item.detail;
+                clickable: true;
+                chevron: false;
+                checkbox: true;
+                checked: item.checked;
+                enabled: AppsState.cleanup-stage == 2;
+                clicked => { AppsState.toggle-leftover(item.id, !item.checked); }
+                toggled(value) => { AppsState.toggle-leftover(item.id, value); }
+            }
+            if AppsState.leftovers.length == 0: Row {
+                first: true;
+                has-glyph: true;
+                glyph: @image-url("../icons/circle-check.svg");
+                label: @tr("No quedó nada: la app se desinstaló por completo.");
+            }
+        }
+        if AppsState.cleanup-stage >= 2 && AppsState.leftovers.length > 0: HorizontalLayout {
+            alignment: end;
+            Button {
+                text: AppsState.leftovers-selected > 0 ? @tr("Eliminar {} seleccionados", AppsState.leftovers-selected) : @tr("Eliminar seleccionados");
+                primary: true;
+                busy: AppsState.cleanup-stage == 3;
+                enabled: AppsState.leftovers-selected > 0;
+                clicked => { AppsState.clean-leftovers(); }
+            }
+        }
+    }
+}
+
+component AppsMain {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/layout-grid.svg");
+            tint: Tints.indigo;
+            title: @tr("Aplicaciones");
+            description: @tr("Tus programas instalados, desinstalación a fondo (con los restos que dejan) y un catálogo curado para instalar con winget.");
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            Segmented {
+                width: 190px;
+                labels: [@tr("Instaladas"), @tr("Descubrir")];
+                selected: AppsState.tab;
+                activated(index) => { AppsState.set-tab(index); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            if AppsState.tab == 0: SearchField {
+                width: 180px;
+                placeholder: @tr("Buscar apps");
+                text <=> AppsState.query;
+                edited(text) => { AppsState.query-changed(text); }
+            }
+            if AppsState.tab == 0: PopupButton {
+                width: 130px;
+                label: @tr("Ordenar");
+                options: [@tr("Por nombre"), @tr("Por tamaño"), @tr("Por fecha")];
+                selected: AppsState.sort;
+                activated(index) => { AppsState.set-sort(index); }
+            }
+        }
+        if AppsState.tab == 0: Section {
+            title: AppsState.loaded ? AppsState.summary : @tr("Cargando…");
+            footer: AppsState.total;
+            for item[i] in AppsState.installed: Row {
+                first: i == 0;
+                leading-app: true;
+                app-icon: item.icon;
+                app-icon-set: item.has-icon;
+                app-letter: item.letter;
+                tint: Tints.palette[Math.mod(item.tint, Tints.palette.length)];
+                label: item.name;
+                sub: item.detail;
+                button: item.can-uninstall ? @tr("Desinstalar") : "";
+                button-destructive: true;
+                button-clicked => { AppsState.uninstall(item.id); }
+            }
+            if AppsState.loaded && AppsState.installed.length == 0: Row {
+                first: true;
+                label: @tr("Sin resultados");
+            }
+        }
+        if AppsState.tab == 1: VerticalLayout {
+            spacing: 22px;
+            for group in AppsState.catalog: Section {
+                title: group.title;
+                for item[i] in group.apps: Row {
+                    first: i == 0;
+                    leading-app: true;
+                    app-icon: item.icon;
+                    app-icon-set: item.has-icon;
+                    app-letter: item.letter;
+                    tint: Tints.palette[Math.mod(item.tint, Tints.palette.length)];
+                    label: item.name;
+                    sub: item.description;
+                    badge: item.store ? "Microsoft Store" : "";
+                    badge-tone: Theme.accent;
+                    value: item.installed ? @tr("Instalada") : "";
+                    checkmark: item.installed;
+                    button: item.installed ? "" : @tr("Instalar");
+                    button-has-icon: true;
+                    button-icon: @image-url("../icons/download.svg");
+                    button-busy: item.busy;
+                    button-enabled: AppsState.winget-loaded;
+                    button-clicked => { AppsState.install(item.id); }
+                }
+            }
+            Text {
+                text: @tr("Las apps se descargan de sus fuentes oficiales con winget, el gestor de paquetes de Windows. Los íconos son los que cada app publica en su sitio oficial (se pueden desactivar en Ajustes de la app).");
+                font-size: 11px;
+                color: Theme.label2;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component AppsPane {
+    VerticalLayout {
+        if Nav.sub == "cleanup": CleanupPage { }
+        if Nav.sub != "cleanup": AppsMain { }
+    }
+}

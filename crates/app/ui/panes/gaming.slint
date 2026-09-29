@@ -1,0 +1,48 @@
+// Panel Juegos: ajustes de rendimiento para jugar (del catálogo, reversibles) y
+// accesos a las opciones de juego de Windows.
+
+import { Tints } from "../theme.slint";
+import { App } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { TweakList, TweaksState } from "../widgets/tweaks.slint";
+
+export component GamingPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/gamepad-2.svg");
+            tint: Tints.green;
+            title: @tr("Juegos");
+            description: @tr("Más rendimiento para jugar: modo de juego, GPU y grabación en segundo plano. Cada ajuste muestra su estado real y se puede deshacer.");
+        }
+        TweakList { category: TweaksState.gaming; }
+        Section {
+            footer: @tr("Estas opciones se abren en Configuración de Windows.");
+            Row {
+                first: true;
+                has-glyph: true;
+                glyph: @image-url("../icons/gamepad-2.svg");
+                label: @tr("Xbox Game Bar");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:gaming-gamebar"); }
+            }
+            Row {
+                has-glyph: true;
+                glyph: @image-url("../icons/monitor.svg");
+                label: @tr("GPU preferida por app");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:display-advancedgraphics"); }
+            }
+            Row {
+                has-glyph: true;
+                glyph: @image-url("../icons/camera.svg");
+                label: @tr("Capturas y grabaciones");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:gaming-gamedvr"); }
+            }
+        }
+    }
+}

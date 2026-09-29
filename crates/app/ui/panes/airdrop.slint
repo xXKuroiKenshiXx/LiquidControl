@@ -1,0 +1,787 @@
+// Panel AirDrop: mandar y recibir archivos con equipos de la red local,
+// hablando el protocolo abierto de LocalSend (ver crates/core/src/airdrop.rs).
+// Subpágina «phone»: el iPhone (o cualquier celular) sin app, por código QR.
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { Button, IconTile, PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { EmptyState } from "../widgets/notice.slint";
+
+export struct AirdropPeerView {
+    fingerprint: string,
+    alias: string,
+    detail: string,
+    // 0 = equipo, 1 = teléfono
+    kind: int,
+}
+
+export struct AirdropFileView {
+    name: string,
+    size: string,
+}
+
+// Vista previa de algo recibido (miniatura de Windows o ícono del archivo).
+export struct AirdropReceivedView {
+    name: string,
+    image: image,
+    loaded: bool,
+}
+
+export global AirdropState {
+    in property <bool> running;
+    in property <bool> busy;
+    in property <string> alias;
+    in property <[AirdropPeerView]> peers;
+    // Envío entrante esperando que el usuario decida.
+    in property <bool> has-pending;
+    in property <string> pending-sender;
+    in property <string> pending-summary;
+    in property <[AirdropFileView]> pending-files;
+    // Transferencia en curso: 0 = nada, 1 = recibiendo, 2 = enviando.
+    in property <int> activity;
+    in property <float> progress;
+    in property <string> progress-label;
+    // La transferencia en curso está en pausa.
+    in property <bool> paused;
+    // Carpeta donde se guarda lo que llega.
+    in property <string> folder;
+    // Página para celulares sin app (iPhone): dirección, su QR y lo compartido.
+    in property <string> web-url;
+    in property <image> qr;
+    in property <[AirdropFileView]> web-shares;
+    // Últimos archivos recibidos, con vista previa.
+    in property <[AirdropReceivedView]> received;
+    // Llegaron fotos del iPhone (HEIC): hace falta el códec gratuito para verlas.
+    in property <bool> has-heic;
+    callback share-web();
+    callback unshare-web(int);
+    callback open-received(int);
+    callback set-running(bool);
+    callback accept();
+    callback reject();
+    callback send-to(string);
+    callback open-folder();
+    callback set-paused(bool);
+    callback cancel-transfer();
+}
+
+component ProgressBar inherits Rectangle {
+    height: 6px;
+    border-radius: 3px;
+    background: Theme.field;
+    clip: true;
+    // Sin `x`, Slint centra el relleno: tiene que crecer desde la izquierda.
+    Rectangle {
+        x: 0;
+        width: parent.width * clamp(AirdropState.progress, 0, 1);
+        border-radius: 3px;
+        background: AirdropState.paused ? Theme.label3 : Theme.accent;
+        animate width { duration: Theme.quick; }
+    }
+}
+
+// Grilla de lo recibido, igual a la de Fotos de iCloud: la miniatura si
+// Windows sabe generarla y, si no, el ícono con el nombre.
+component ReceivedGrid {
+    in property <[AirdropReceivedView]> items;
+    property <length> gap: 6px;
+    property <int> columns: max(1, Math.floor((self.width - self.gap) / (92px + self.gap)));
+    property <length> cell: (self.width - self.gap * (self.columns + 1)) / self.columns;
+    property <int> rows: Math.ceil(self.items.length / self.columns);
+
+    min-height: self.rows * (self.cell + self.gap) + self.gap;
+
+    for item[i] in root.items: Rectangle {
+        x: root.gap + Math.mod(i, root.columns) * (root.cell + root.gap);
+        y: root.gap + Math.floor(i / root.columns) * (root.cell + root.gap);
+        width: root.cell;
+        height: root.cell;
+        border-radius: 8px;
+        clip: true;
+        background: Theme.field;
+        transform-scale-x: touch.has-hover ? 1 + 0.6 * Theme.squish : 1;
+        transform-scale-y: touch.has-hover ? 1 + 0.6 * Theme.squish : 1;
+        animate transform-scale-x, transform-scale-y { duration: Theme.smooth; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        if item.loaded: Image {
+            width: 100%;
+            height: 100%;
+            source: item.image;
+            image-fit: cover;
+        }
+        if !item.loaded: Image {
+            source: @image-url("../icons/file.svg");
+            width: 22px;
+            height: 22px;
+            y: (parent.height - self.height) / 2 - 8px;
+            colorize: Theme.label3;
+        }
+        // Nombre sobre un degradé, como en Fotos.
+        Rectangle {
+            y: parent.height - self.height;
+            height: 24px;
+            background: @linear-gradient(180deg, #00000000 0%, #0000008c 100%);
+            Text {
+                x: 6px;
+                width: parent.width - 12px;
+                text: item.name;
+                font-size: 10px;
+                color: #ffffff;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { AirdropState.open-received(i); }
+        }
+    }
+}
+
+// Miniatura chiquita para la fila plegada de «Recibidos».
+component MiniThumb inherits Rectangle {
+    in property <AirdropReceivedView> item;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: Theme.group;
+    background: Theme.field;
+    clip: true;
+    if root.item.loaded: Image {
+        width: 100%;
+        height: 100%;
+        source: root.item.image;
+        image-fit: cover;
+    }
+    if !root.item.loaded: Image {
+        width: 14px;
+        height: 14px;
+        source: @image-url("../icons/file.svg");
+        colorize: Theme.label3;
+    }
+}
+
+// Pedido entrante y transferencia en curso: se ven en las dos páginas, así
+// quien escanea el QR puede aceptar sin volver atrás.
+component TransferCards inherits VerticalLayout {
+    spacing: 22px;
+
+    if AirdropState.has-pending: Section {
+        title: @tr("Te quieren mandar archivos");
+        VerticalLayout {
+            padding: 14px;
+            spacing: 10px;
+            Text {
+                text: @tr("«{}» quiere mandarte {}.", AirdropState.pending-sender, AirdropState.pending-summary);
+                font-size: 13px;
+                color: Theme.label;
+                wrap: word-wrap;
+            }
+            for file in AirdropState.pending-files: HorizontalLayout {
+                spacing: 8px;
+                Text {
+                    text: file.name;
+                    font-size: 12px;
+                    color: Theme.label2;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                }
+                Text { text: file.size; font-size: 12px; color: Theme.label3; }
+            }
+            HorizontalLayout {
+                alignment: end;
+                spacing: 8px;
+                Button {
+                    small: true;
+                    destructive: true;
+                    text: @tr("Rechazar");
+                    clicked => { AirdropState.reject(); }
+                }
+                Button {
+                    small: true;
+                    primary: true;
+                    text: @tr("Aceptar");
+                    clicked => { AirdropState.accept(); }
+                }
+            }
+        }
+    }
+
+    if AirdropState.activity != 0: Section {
+        VerticalLayout {
+            padding: 14px;
+            spacing: 8px;
+            HorizontalLayout {
+                spacing: 8px;
+                Text {
+                    text: AirdropState.paused
+                        ? @tr("En pausa")
+                        : AirdropState.activity == 1 ? @tr("Recibiendo…") : @tr("Enviando…");
+                    font-size: 13px;
+                    color: Theme.label;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    small: true;
+                    text: AirdropState.paused ? @tr("Reanudar") : @tr("Pausar");
+                    clicked => { AirdropState.set-paused(!AirdropState.paused); }
+                }
+                Button {
+                    small: true;
+                    destructive: true;
+                    text: @tr("Cancelar");
+                    clicked => { AirdropState.cancel-transfer(); }
+                }
+            }
+            ProgressBar { }
+            Text { text: AirdropState.progress-label; font-size: 12px; color: Theme.label2; }
+        }
+    }
+}
+
+// ─────────────────────────── Subpágina: iPhone y celulares ───────────────────────────
+
+// Botón blanco para usar sobre el degradé de la tarjeta principal.
+component HeroButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    height: 32px;
+    border-radius: 16px;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    background: !root.enabled ? #ffffff59 : touch.pressed ? #ffffffcc : touch.has-hover ? #fffffff2 : #ffffff;
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        Text {
+            text: root.text;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0a5cd6;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Tarjeta principal: el QR grande sobre un degradé, con su estado.
+component PhoneHero inherits Rectangle {
+    property <bool> ready: AirdropState.running && AirdropState.web-url != "";
+
+    border-radius: 18px;
+    clip: true;
+    background: @linear-gradient(135deg, #0a84ff 0%, #5e5ce6 55%, #bf5af2 100%);
+
+    // Brillos suaves de fondo.
+    Rectangle {
+        x: parent.width - 190px;
+        y: -80px;
+        width: 280px;
+        height: 280px;
+        border-radius: 140px;
+        background: #ffffff17;
+    }
+    Rectangle {
+        x: -90px;
+        y: parent.height - 100px;
+        width: 220px;
+        height: 220px;
+        border-radius: 110px;
+        background: #ffffff0f;
+    }
+
+    HorizontalLayout {
+        padding: 24px;
+        spacing: 24px;
+
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 176px;
+                height: 176px;
+                border-radius: 20px;
+                background: root.ready ? #ffffff : #ffffff2e;
+                drop-shadow-blur: 28px;
+                drop-shadow-offset-y: 10px;
+                drop-shadow-color: root.ready ? #00000052 : transparent;
+                if root.ready: Image {
+                    width: 156px;
+                    height: 156px;
+                    source: AirdropState.qr;
+                    image-rendering: pixelated;
+                }
+                if !root.ready: VerticalLayout {
+                    alignment: center;
+                    spacing: 10px;
+                    padding: 16px;
+                    HorizontalLayout {
+                        alignment: center;
+                        Image {
+                            source: @image-url("../icons/qr-code.svg");
+                            width: 56px;
+                            height: 56px;
+                            colorize: #ffffffb3;
+                        }
+                    }
+                    Text {
+                        text: AirdropState.running ? @tr("Sin red local") : @tr("AirDrop apagado");
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: #ffffffd9;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            horizontal-stretch: 1;
+
+            // Estado en una pastilla.
+            HorizontalLayout {
+                alignment: start;
+                Rectangle {
+                    border-radius: 11px;
+                    background: #ffffff2b;
+                    HorizontalLayout {
+                        padding-left: 9px;
+                        padding-right: 11px;
+                        padding-top: 4px;
+                        padding-bottom: 4px;
+                        spacing: 6px;
+                        VerticalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: 8px;
+                                height: 8px;
+                                border-radius: 4px;
+                                background: root.ready ? #30d158 : AirdropState.running ? #ffd60a : #ffffff80;
+                            }
+                        }
+                        Text {
+                            text: root.ready
+                                ? @tr("Listo para conectar")
+                                : AirdropState.running ? @tr("Buscando la red…") : @tr("Apagado");
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: #ffffff;
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: root.ready ? @tr("Escaneá con la cámara") : @tr("Pasá fotos del iPhone a la PC");
+                font-size: 22px;
+                font-weight: 700;
+                color: #ffffff;
+                wrap: word-wrap;
+            }
+            Text {
+                text: root.ready
+                    ? @tr("Apuntá la cámara del iPhone o de cualquier celular al código y tocá el enlace que aparece. Se abre una página para mandar fotos y archivos a esta PC, sin instalar nada.")
+                    : AirdropState.running
+                        ? @tr("Conectá la PC a una red Wi‑Fi o por cable para mostrar el código.")
+                        : @tr("Prendé AirDrop y vas a ver un código para escanear con el celular. No hace falta instalar ninguna app.");
+                font-size: 13px;
+                color: #ffffffd9;
+                wrap: word-wrap;
+            }
+            if root.ready: Text {
+                text: AirdropState.web-url;
+                font-size: 11px;
+                color: #ffffff8c;
+                overflow: elide;
+            }
+            if !AirdropState.running: HorizontalLayout {
+                alignment: start;
+                padding-top: 4px;
+                HeroButton {
+                    text: @tr("Prender AirDrop");
+                    enabled: !AirdropState.busy;
+                    clicked => { AirdropState.set-running(true); }
+                }
+            }
+        }
+    }
+}
+
+// Un paso del «cómo funciona», con número e ícono.
+component StepTile inherits Rectangle {
+    in property <string> number;
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+
+    background: @linear-gradient(180deg, Theme.group-top 0%, Theme.group 70%);
+    border-radius: Theme.radius-group;
+    border-width: 1px;
+    border-color: Theme.group-border;
+
+    VerticalLayout {
+        padding: 14px;
+        spacing: 8px;
+        alignment: start;
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            Rectangle {
+                width: 24px;
+                height: 24px;
+                border-radius: 12px;
+                background: Theme.accent;
+                Text {
+                    text: root.number;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #ffffff;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Image {
+                    source: root.icon;
+                    width: 18px;
+                    height: 18px;
+                    colorize: Theme.label2;
+                }
+            }
+        }
+        Text {
+            text: root.title;
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.label;
+            wrap: word-wrap;
+        }
+        Text {
+            text: root.text;
+            font-size: 11px;
+            color: Theme.label2;
+            wrap: word-wrap;
+        }
+    }
+}
+
+component PhonePage inherits VerticalLayout {
+    spacing: 22px;
+
+    PhoneHero { }
+
+    // Solo si hay algo: vacío igual sumaría el espaciado del layout.
+    if AirdropState.has-pending || AirdropState.activity != 0: TransferCards { }
+
+    VerticalLayout {
+        spacing: 8px;
+        Text {
+            x: 10px;
+            text: @tr("Cómo funciona");
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.label;
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            StepTile {
+                horizontal-stretch: 1;
+                number: "1";
+                icon: @image-url("../icons/camera.svg");
+                title: @tr("Escaneá el código");
+                text: @tr("Con la cámara del iPhone, o la de cualquier celular. Tiene que estar en la misma red Wi‑Fi que la PC.");
+            }
+            StepTile {
+                horizontal-stretch: 1;
+                number: "2";
+                icon: @image-url("../icons/image-plus.svg");
+                title: @tr("Elegí qué mandar");
+                text: @tr("En la página tocá «Elegir archivos»: podés elegir fotos, videos o cualquier archivo.");
+            }
+            StepTile {
+                horizontal-stretch: 1;
+                number: "3";
+                icon: @image-url("../icons/circle-check.svg");
+                title: @tr("Aceptá en la PC");
+                text: @tr("Acá aparece quién te manda qué. Nada se guarda hasta que tocás «Aceptar».");
+            }
+        }
+    }
+
+    Section {
+        title: @tr("Para bajar desde el celular");
+        action: @tr("Agregar archivos…");
+        action-enabled: AirdropState.running && AirdropState.web-url != "";
+        action-clicked => { AirdropState.share-web(); }
+        footer: @tr("Aparecen en la sección «Bajar de la PC» de la página del celular. Se dejan de compartir al apagar AirDrop.");
+        for share[i] in AirdropState.web-shares: Row {
+            first: i == 0;
+            has-icon: true;
+            icon: @image-url("../icons/file.svg");
+            tint: Tints.blue;
+            label: share.name;
+            sub: share.size;
+            button: @tr("Quitar");
+            button-clicked => { AirdropState.unshare-web(i); }
+        }
+        if AirdropState.web-shares.length == 0: Row {
+            first: true;
+            has-icon: true;
+            icon: @image-url("../icons/download.svg");
+            tint: Tints.gray;
+            label: @tr("Todavía no compartiste nada");
+            sub: @tr("Agregá archivos y el celular los va a poder bajar desde la página.");
+        }
+    }
+
+    Section {
+        title: @tr("Otras formas");
+        Row {
+            first: true;
+            has-icon: true;
+            icon: @image-url("../icons/zap.svg");
+            tint: Tints.purple;
+            label: @tr("LocalSend en el celular");
+            sub: @tr("Gratis para iPhone y Android. Con la app abierta, el celular aparece solo en «Equipos cerca», como con AirDrop.");
+            clickable: true;
+            external: true;
+            clicked => { App.open-uri("https://localsend.org/download"); }
+        }
+        Row {
+            has-icon: true;
+            icon: @image-url("../icons/info.svg");
+            tint: Tints.gray;
+            label: @tr("¿Y el AirDrop de Apple?");
+            sub: @tr("Usa AWDL, un Wi‑Fi especial que solo tienen los equipos de Apple. Windows no lo puede hablar, por eso se usa este código.");
+        }
+    }
+}
+
+// ─────────────────────────── Página principal ───────────────────────────
+
+component AirdropMain inherits VerticalLayout {
+    // «Recibidos» plegado: se despliega al tocar la fila.
+    property <bool> show-received: false;
+    spacing: 22px;
+
+    PaneHeader {
+        icon: @image-url("../icons/radio.svg");
+        tint: Tints.blue;
+        title: "AirDrop";
+        description: @tr("Mandá y recibí archivos con otros equipos de la misma red, sin nube y sin instalar nada más. Es compatible con LocalSend, así que también funciona con celulares.");
+    }
+    Section {
+        Row {
+            first: true;
+            has-glyph: true;
+            glyph: @image-url("../icons/radio.svg");
+            label: @tr("AirDrop");
+            sub: AirdropState.running
+                ? @tr("Te ven como «{}». Nada se guarda sin que lo aceptes.", AirdropState.alias)
+                : @tr("Apagado: nadie te ve ni te puede mandar nada.");
+            toggle: true;
+            checked: AirdropState.running;
+            toggle-enabled: !AirdropState.busy;
+            toggled(value) => { AirdropState.set-running(value); }
+        }
+        if AirdropState.running: Row {
+            has-glyph: true;
+            glyph: @image-url("../icons/download.svg");
+            label: @tr("Guardar lo que reciba en");
+            sub: AirdropState.folder;
+            button: @tr("Abrir");
+            button-clicked => { AirdropState.open-folder(); }
+        }
+    }
+
+    // Solo si hay algo: vacío igual sumaría el espaciado del layout.
+    if AirdropState.has-pending || AirdropState.activity != 0: TransferCards { }
+
+    if AirdropState.running: Section {
+        title: @tr("Equipos cerca");
+        footer: @tr("Aparecen los equipos de tu red que tengan AirDrop de LiquidControl o LocalSend abierto.");
+        for peer[i] in AirdropState.peers: Row {
+            first: i == 0;
+            has-icon: true;
+            icon: peer.kind == 1 ? @image-url("../icons/smartphone.svg") : @image-url("../icons/monitor.svg");
+            tint: Tints.blue;
+            label: peer.alias;
+            sub: peer.detail;
+            button: @tr("Enviar…");
+            button-enabled: AirdropState.activity == 0;
+            button-clicked => { AirdropState.send-to(peer.fingerprint); }
+        }
+        if AirdropState.peers.length == 0: Row {
+            first: true;
+            label: @tr("Buscando equipos…");
+            sub: @tr("Tienen que estar en la misma red Wi‑Fi y con la app abierta en esta sección.");
+        }
+    }
+
+    if AirdropState.running && AirdropState.received.length > 0: Section {
+        title: @tr("Recibidos");
+        action: @tr("Abrir carpeta");
+        action-clicked => { AirdropState.open-folder(); }
+        footer: root.show-received
+            ? @tr("Las imágenes se abren con un clic; el resto se muestra en su carpeta, así nada de lo que llega se ejecuta sin querer.")
+            : "";
+
+        // Fila que pliega y despliega las vistas previas.
+        Rectangle {
+            height: 60px;
+            accessible-role: button;
+            accessible-label: root.show-received ? @tr("Ocultar lo recibido") : @tr("Ver lo recibido");
+            accessible-action-default => { root.show-received = !root.show-received; }
+            Rectangle {
+                x: 4px;
+                y: 4px;
+                width: parent.width - 8px;
+                height: parent.height - 8px;
+                border-radius: 8px;
+                background: toggle.has-hover ? Theme.field : transparent;
+                animate background { duration: Theme.quick; }
+            }
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 14px;
+                spacing: 10px;
+                VerticalLayout {
+                    alignment: center;
+                    IconTile { icon: @image-url("../icons/image.svg"); tint: Tints.blue; }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: root.show-received ? @tr("Ocultar lo recibido") : @tr("Ver lo recibido");
+                        font-size: 13px;
+                        color: Theme.label;
+                    }
+                    Text {
+                        text: (AirdropState.received.length == 1 ? @tr("1 archivo")
+                            : AirdropState.received.length >= 12 ? @tr("Los últimos 12 archivos")
+                            : @tr("{} archivos", AirdropState.received.length))
+                            + " · " + @tr("el último: {}", AirdropState.received[0].name);
+                        font-size: 11px;
+                        color: Theme.label2;
+                        overflow: elide;
+                    }
+                }
+                // Hasta tres miniaturas encimadas mientras está plegado.
+                if !root.show-received: VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 34px + 20px * (min(AirdropState.received.length, 3) - 1);
+                        height: 34px;
+                        if AirdropState.received.length > 2: MiniThumb { x: 40px; item: AirdropState.received[2]; }
+                        if AirdropState.received.length > 1: MiniThumb { x: 20px; item: AirdropState.received[1]; }
+                        MiniThumb { x: 0px; item: AirdropState.received[0]; }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        width: 13px;
+                        height: 13px;
+                        source: @image-url("../icons/chevron-down.svg");
+                        colorize: Theme.label3;
+                        transform-rotation: root.show-received ? 180deg : 0deg;
+                        animate transform-rotation { duration: Theme.smooth; easing: cubic-bezier(0.32, 0.72, 0, 1); }
+                    }
+                }
+            }
+            toggle := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.show-received = !root.show-received; }
+            }
+        }
+
+        // Las vistas previas se despliegan hacia abajo.
+        Rectangle {
+            clip: true;
+            height: root.show-received ? previews.preferred-height : 0px;
+            animate height { duration: Theme.smooth; easing: cubic-bezier(0.32, 0.72, 0, 1); }
+            previews := VerticalLayout {
+                y: 0px;
+                height: self.preferred-height;
+                ReceivedGrid { items: AirdropState.received; }
+                if AirdropState.has-heic: Row {
+                    has-icon: true;
+                    icon: @image-url("../icons/image.svg");
+                    tint: Tints.purple;
+                    label: @tr("Extensiones de imagen HEIF");
+                    sub: @tr("Las fotos del iPhone (HEIC) necesitan este complemento gratuito de Microsoft para verse.");
+                    button: @tr("Obtener");
+                    button-clicked => { App.open-uri("ms-windows-store://pdp/?productid=9PMMSR1CGPWG"); }
+                }
+            }
+        }
+    }
+
+    if !AirdropState.running: EmptyState {
+        icon: @image-url("../icons/radio.svg");
+        text: @tr("Prendé AirDrop para ver los equipos que tenés cerca y mandarles archivos.");
+    }
+
+    // Al final, chico y discreto como un pie de página: es otra forma de usar
+    // AirDrop, no hace falta que compita en tamaño con lo de arriba.
+    Rectangle {
+        height: 34px;
+        border-radius: 8px;
+        background: touch.has-hover ? Theme.hover : transparent;
+        animate background { duration: Theme.quick; }
+        HorizontalLayout {
+            padding-left: 10px;
+            padding-right: 10px;
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Image {
+                    source: @image-url("../icons/qr-code.svg");
+                    width: 13px;
+                    height: 13px;
+                    colorize: Theme.label2;
+                }
+            }
+            Text {
+                text: @tr("¿Tenés un iPhone o un celular sin app? Escaneá un código QR para pasar fotos.");
+                font-size: 11px;
+                color: Theme.label2;
+                overflow: elide;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: center;
+                Image {
+                    source: @image-url("../icons/chevron-right.svg");
+                    width: 11px;
+                    height: 11px;
+                    colorize: Theme.label3;
+                }
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { Nav.open("airdrop", "phone", ""); }
+        }
+    }
+}
+
+export component AirdropPane {
+    VerticalLayout {
+        if Nav.sub == "phone": PhonePage { }
+        if Nav.sub == "": AirdropMain { }
+    }
+}

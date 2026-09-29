@@ -1,0 +1,49 @@
+// Ícono de app al estilo macOS: una baldosa de vidrio teñida con el ícono real
+// adentro o, si la app no tiene ícono, su inicial sobre un degradé.
+// (La sombra va en un hijo: en la raíz, Slint copiaría el ícono en cada fila.)
+
+import { Theme, Tint, Tints } from "../theme.slint";
+
+export component AppIcon {
+    in property <image> icon;
+    in property <bool> has-icon;
+    in property <string> letter;
+    in property <Tint> tint: Tints.gray;
+    in property <length> size: 28px;
+
+    width: root.size;
+    height: root.size;
+
+    Rectangle {
+        border-radius: root.size * 0.26;
+        background: root.has-icon
+            ? @linear-gradient(160deg, root.tint.top.with-alpha(Theme.dark ? 0.35 : 0.22) 0%, root.tint.bottom.with-alpha(Theme.dark ? 0.18 : 0.10) 100%)
+            : @linear-gradient(180deg, root.tint.top 0%, root.tint.bottom 100%);
+        border-width: 1px;
+        border-color: Theme.dark ? #ffffff1f : #0000001a;
+        drop-shadow-blur: 2px;
+        drop-shadow-color: #00000033;
+        drop-shadow-offset-y: 0.5px;
+
+        // Reflejo de vidrio arriba.
+        Rectangle {
+            y: 0;
+            height: parent.height * 0.5;
+            border-top-left-radius: root.size * 0.26;
+            border-top-right-radius: root.size * 0.26;
+            background: @linear-gradient(180deg, rgba(255, 255, 255, 0.12 + 0.14 * Theme.glass) 0%, rgba(255, 255, 255, 0) 100%);
+        }
+        if root.has-icon: Image {
+            source: root.icon;
+            width: root.size * 0.72;
+            height: root.size * 0.72;
+            image-fit: contain;
+        }
+        if !root.has-icon: Text {
+            text: root.letter;
+            color: #ffffff;
+            font-size: root.size * 0.46;
+            font-weight: 650;
+        }
+    }
+}

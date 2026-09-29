@@ -1,0 +1,119 @@
+// Tokens de diseño (claro / oscuro) inspirados en Ajustes del Sistema de macOS Tahoe.
+// La app (Rust) fija `dark`, `accent`, `on-accent`, `motion` y `glass` según las preferencias.
+
+export struct Tint {
+    top: color,
+    bottom: color,
+}
+
+export global Theme {
+    in-out property <bool> dark: true;
+    in-out property <color> accent: #0a84ff;
+    in-out property <color> on-accent: #ffffff;
+    // "Vidrio líquido" como acento (Ajustes de la app → Apariencia → Color de
+    // acento): en vez de un color plano, los rellenos y los estados de hover
+    // de los botones usan un vidrio teñido con `accent`, con el mismo
+    // lenguaje visual (reflejo arriba, sombra al pie) que ya usan las
+    // superficies de vidrio de la app.
+    in-out property <bool> accent-glass: false;
+    // Relleno sólido de un botón/interruptor primario: el acento plano, o el
+    // vidrio teñido si se eligió esa opción.
+    out property <brush> accent-brush: !root.accent-glass ? root.accent : @linear-gradient(180deg,
+        root.accent.mix(#ffffff, root.dark ? 0.32 : 0.55) 0%,
+        root.accent 52%,
+        root.accent.mix(#000000, root.dark ? 0.35 : 0.12) 100%);
+    // Versión translúcida: el "lavado" de hover/presionado de un botón de texto.
+    out property <brush> accent-wash: !root.accent-glass ? root.accent.with-alpha(0.16) : @linear-gradient(180deg,
+        root.accent.with-alpha(0.05) 0%,
+        root.accent.with-alpha(0.30) 52%,
+        root.accent.with-alpha(0.14) 100%);
+    // Intensidad de las animaciones: 0 = ninguna, 1 = normal, 1,8 = máximas.
+    in-out property <float> motion: 1;
+    // Intensidad del Liquid Glass: 0 = sin vidrio, 1 = normal, 1,5 = exagerado.
+    in-out property <float> glass: 1;
+
+    // Superficies
+    out property <color> window: dark ? #1c1c1e : #ececee;
+    out property <color> content: dark ? #1f1f21 : #f5f5f7;
+    out property <color> sidebar: dark ? #29292c : #e4e4e8;
+    out property <color> sidebar-border: dark ? #ffffff14 : #00000012;
+    out property <color> group: dark ? #2b2b2e : #ffffff;
+    // Parte superior de los grupos: un reflejo que crece con el vidrio.
+    out property <color> group-top: dark ? rgb(43 + 16 * glass, 43 + 16 * glass, 46 + 16 * glass) : #ffffff;
+    out property <color> group-border: dark ? rgba(255, 255, 255, 0.035 + 0.045 * glass) : rgba(0, 0, 0, 0.07);
+    out property <color> separator: dark ? #ffffff17 : #00000014;
+    // Hojas flotantes: diálogos y avisos.
+    out property <color> sheet-top: dark ? #3c3c41 : #fdfdfe;
+    out property <color> sheet-bottom: dark ? #323236 : #f2f2f5;
+
+    // Texto
+    out property <color> label: dark ? #ffffffe6 : #000000db;
+    out property <color> label2: dark ? #ffffff8c : #00000080;
+    out property <color> label3: dark ? #ffffff4d : #0000004d;
+
+    // Controles
+    out property <color> hover: dark ? #ffffff0d : #0000000a;
+    out property <color> pressed: dark ? #ffffff1a : #00000014;
+    out property <color> field: dark ? #ffffff14 : #0000000d;
+    out property <color> control: dark ? #4a4a4f : #ffffff;
+    out property <color> control-border: dark ? #ffffff17 : #00000024;
+    out property <color> switch-off: dark ? #ffffff29 : #00000021;
+    out property <color> track: dark ? #ffffff2e : #00000021;
+    out property <color> shadow: dark ? #00000070 : #00000026;
+
+    // Liquid Glass: sin desenfoque real del fondo (Slint no lo permite), así que
+    // el vidrio se simula con más contraste del habitual entre un reflejo
+    // superior casi blanco, una base que se apaga rápido y una sombra interna al
+    // pie — esa caída marcada es lo que se lee como "vidrio" y no transparencia
+    // plana. Todo escala con `glass`.
+    out property <color> glass-top: dark ? rgba(255, 255, 255, min(0.85, 0.4 * glass)) : rgba(255, 255, 255, min(1, glass));
+    out property <color> glass-bottom: dark ? rgba(255, 255, 255, 0.015 * glass) : rgba(255, 255, 255, 0.22 * glass);
+    out property <color> glass-rim: dark ? rgba(255, 255, 255, min(1, 0.4 * glass)) : rgba(255, 255, 255, min(1, 1.15 * glass));
+    // Reflejo que cae desde el borde superior de las superficies de vidrio.
+    out property <color> glass-sheen: dark ? rgba(255, 255, 255, min(0.5, 0.22 * glass)) : rgba(255, 255, 255, min(0.9, 0.55 * glass));
+    // Brillo especular extra: una línea fina en el borde superior, visible desde
+    // vidrio normal (no solo el exagerado).
+    out property <color> glass-shine: rgba(255, 255, 255, min(0.9, 0.35 * glass) * (dark ? 1 : 1.6));
+    // Sombra interna al pie de la superficie: le da profundidad, como el borde
+    // inferior de un vidrio real en vez de una lámina plana.
+    out property <color> glass-shadow-inner: rgba(0, 0, 0, min(0.5, (dark ? 0.4 : 0.16) * glass));
+    // Sombra de las superficies de vidrio (más profunda cuanto más vidrio).
+    out property <length> glass-blur: 10px + 14px * glass;
+
+    // Estados
+    out property <color> danger: dark ? #ff453a : #ff3b30;
+    out property <color> success: dark ? #30d158 : #28c840;
+    out property <color> warning: dark ? #ff9f0a : #e08600;
+
+    // Medidas y tiempos (todas las animaciones escalan con `motion`)
+    out property <length> radius-group: 12px;
+    out property <length> sidebar-width: 244px;
+    out property <length> content-x: 260px;
+    out property <duration> quick: 180ms * motion;
+    out property <duration> smooth: 380ms * motion;
+    out property <duration> bouncy: 560ms * motion;
+    // Cuánto "rebota" un control al presionarlo (0 sin animaciones).
+    out property <float> squish: min(1, motion) * 0.04 + max(0, motion - 1) * 0.04;
+    // Cuánto se achica la página al entrar (vuelve a su tamaño con la animación).
+    out property <float> reveal-depth: min(0.05, 0.015 * motion);
+}
+
+// Colores de los íconos de los paneles (degradé arriba → abajo).
+export global Tints {
+    out property <Tint> blue: { top: #4da6ff, bottom: #0a6cff };
+    out property <Tint> indigo: { top: #7d7bf2, bottom: #4a47d5 };
+    out property <Tint> purple: { top: #cb82ee, bottom: #9a3dd0 };
+    out property <Tint> pink: { top: #ff6e92, bottom: #f0305b };
+    out property <Tint> red: { top: #ff6b5f, bottom: #e5312a };
+    out property <Tint> orange: { top: #ffb547, bottom: #ff8800 };
+    out property <Tint> yellow: { top: #ffd94f, bottom: #f4b400 };
+    out property <Tint> green: { top: #62dd7f, bottom: #25ac49 };
+    out property <Tint> mint: { top: #52e3d7, bottom: #00b2a5 };
+    out property <Tint> teal: { top: #5fcbdf, bottom: #2393ae };
+    out property <Tint> cyan: { top: #62cbf6, bottom: #1b9cdf };
+    out property <Tint> gray: { top: #a9a9af, bottom: #7a7a81 };
+    out property <Tint> graphite: { top: #737378, bottom: #464649 };
+    out property <Tint> black: { top: #505055, bottom: #1c1c1e };
+    // Colores para íconos genéricos (apps sin ícono propio), elegidos por índice.
+    out property <[Tint]> palette: [blue, purple, pink, orange, green, teal, indigo, red];
+}

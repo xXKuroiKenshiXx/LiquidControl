@@ -1,0 +1,73 @@
+// Panel Optimización: punto de restauración, ajustes de rendimiento y apps preinstaladas.
+
+import { Tints } from "../theme.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { TweakList, TweaksState } from "../widgets/tweaks.slint";
+
+export struct AppxView {
+    name: string,
+    label: string,
+    // Índice de color para el ícono (ver Tints.palette)
+    tint: int,
+    selected: bool,
+}
+
+export global OptimizeState {
+    in property <[AppxView]> appx;
+    in property <bool> appx-loaded;
+    in property <int> appx-selected;
+    in property <bool> restore-busy;
+    callback create-restore-point();
+    callback toggle-appx(string, bool);
+    callback remove-appx();
+}
+
+export component OptimizePane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/gauge.svg");
+            tint: Tints.orange;
+            title: @tr("Optimización");
+            description: @tr("Ajustes de rendimiento y limpieza reversibles: cada opción muestra su estado real y se puede deshacer.");
+        }
+        Section {
+            footer: @tr("Recomendado antes de aplicar ajustes marcados como «Avanzado».");
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/life-buoy.svg");
+                tint: Tints.green;
+                label: @tr("Crear un punto de restauración");
+                sub: @tr("Una copia del estado del sistema para volver atrás si algo sale mal.");
+                button: @tr("Crear");
+                button-busy: OptimizeState.restore-busy;
+                button-clicked => { OptimizeState.create-restore-point(); }
+            }
+        }
+        TweakList { category: TweaksState.optimize; }
+        Section {
+            title: @tr("Apps preinstaladas");
+            footer: @tr("Se quitan solo para tu usuario y podés reinstalarlas cuando quieras desde la Microsoft Store.");
+            action: OptimizeState.appx-selected > 0 ? @tr("Eliminar ({})", OptimizeState.appx-selected) : @tr("Eliminar");
+            action-destructive: true;
+            action-enabled: OptimizeState.appx-selected > 0;
+            action-clicked => { OptimizeState.remove-appx(); }
+            for pkg[i] in OptimizeState.appx: Row {
+                first: i == 0;
+                has-icon: true;
+                icon: @image-url("../icons/layout-grid.svg");
+                tint: Tints.palette[Math.mod(pkg.tint, Tints.palette.length)];
+                label: pkg.label;
+                sub: pkg.name;
+                checkbox: true;
+                checked: pkg.selected;
+                toggled(value) => { OptimizeState.toggle-appx(pkg.name, value); }
+            }
+            if OptimizeState.appx-loaded && OptimizeState.appx.length == 0: Row {
+                first: true;
+                label: @tr("No quedan apps preinstaladas de la lista.");
+            }
+        }
+    }
+}

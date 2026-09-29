@@ -1,0 +1,9 @@
+# Finales de línea consistentes en el repositorio (LF), sin importar el sistema.
+* text=auto eol=lf
+
+# Binarios
+*.png binary
+*.ico binary
+*.icns binary
+*.ttf binary
+*.woff2 binary

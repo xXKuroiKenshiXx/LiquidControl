@@ -1,0 +1,114 @@
+// Panel Notificaciones: avisos globales y permiso por app (con su ícono).
+
+import { Tints } from "../theme.slint";
+import { App } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { SearchField } from "../widgets/controls.slint";
+
+export struct NotificationAppView {
+    id: string,
+    name: string,
+    enabled: bool,
+    // Índice de color para el ícono genérico (0–7)
+    tint: int,
+    letter: string,
+    icon: image,
+    has-icon: bool,
+}
+
+export global NotificationsState {
+    in property <bool> loaded;
+    in property <bool> enabled;
+    in property <bool> lock-screen;
+    in property <bool> sounds;
+    in property <bool> tips;
+    // Apps visibles (ya filtradas por Rust).
+    in property <[NotificationAppView]> apps;
+    in-out property <string> filter;
+    // "enabled", "lock-screen", "sounds" o "tips"
+    callback set-flag(string, bool);
+    callback set-app(string, bool);
+    callback filter-changed(string);
+}
+
+export component NotificationsPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/bell.svg");
+            tint: Tints.red;
+            title: @tr("Notificaciones");
+            description: @tr("Elegí qué apps pueden avisarte y cómo se muestran los avisos.");
+        }
+        if NotificationsState.loaded: Section {
+            Row {
+                first: true;
+                label: @tr("Permitir notificaciones");
+                sub: @tr("Desactivalo para silenciar todos los avisos de apps y de Windows.");
+                toggle: true;
+                checked: NotificationsState.enabled;
+                toggled(value) => { NotificationsState.set-flag("enabled", value); }
+            }
+            Row {
+                label: @tr("Mostrar en la pantalla bloqueada");
+                toggle: true;
+                checked: NotificationsState.lock-screen;
+                toggle-enabled: NotificationsState.enabled;
+                toggled(value) => { NotificationsState.set-flag("lock-screen", value); }
+            }
+            Row {
+                label: @tr("Reproducir sonido con las notificaciones");
+                toggle: true;
+                checked: NotificationsState.sounds;
+                toggle-enabled: NotificationsState.enabled;
+                toggled(value) => { NotificationsState.set-flag("sounds", value); }
+            }
+            Row {
+                label: @tr("Sugerencias y consejos de Windows");
+                sub: @tr("Avisos promocionales y tips mientras usás Windows.");
+                toggle: true;
+                checked: NotificationsState.tips;
+                toggled(value) => { NotificationsState.set-flag("tips", value); }
+            }
+        }
+        if NotificationsState.loaded: Section {
+            title: @tr("Notificaciones de apps");
+            Rectangle {
+                height: 44px;
+                SearchField {
+                    x: 10px;
+                    y: 8px;
+                    width: parent.width - 20px;
+                    placeholder: @tr("Filtrar");
+                    text <=> NotificationsState.filter;
+                    edited(text) => { NotificationsState.filter-changed(text); }
+                }
+            }
+            for item in NotificationsState.apps: Row {
+                leading-app: true;
+                app-icon: item.icon;
+                app-icon-set: item.has-icon;
+                app-letter: item.letter;
+                tint: Tints.palette[Math.mod(item.tint, Tints.palette.length)];
+                label: item.name;
+                toggle: true;
+                checked: item.enabled;
+                toggle-enabled: NotificationsState.enabled;
+                toggled(value) => { NotificationsState.set-app(item.id, value); }
+            }
+            if NotificationsState.apps.length == 0: Row {
+                label: NotificationsState.filter != "" ? @tr("Sin resultados") : @tr("Ninguna app envió notificaciones todavía.");
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                label: @tr("No molestar y concentración");
+                sub: @tr("Programá horarios sin interrupciones.");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:notifications"); }
+            }
+        }
+    }
+}

@@ -1,0 +1,101 @@
+// Ventana principal de LiquidControl: barra lateral flotante, área de contenido y capas.
+
+import { Theme, Tint, Tints } from "theme.slint";
+import { App, Dialog, Nav, PaneInfo, Registry, SearchResult, Toasts, ToastView } from "globals.slint";
+import { Sidebar } from "shell/sidebar.slint";
+import { ContentArea } from "shell/content.slint";
+import { DialogOverlay, ToastStack } from "shell/overlays.slint";
+import { DriveView, GeneralState, RemovedStartupView, StartupView } from "panes/general.slint";
+import { AppearanceState } from "panes/appearance.slint";
+import { AccessibilityState } from "panes/accessibility.slint";
+import { AppxView, OptimizeState } from "panes/optimize.slint";
+import { TweakCategory, TweakSection, TweaksState, TweakView } from "widgets/tweaks.slint";
+import { MouseState } from "panes/mouse.slint";
+import { KeyboardState, LanguageView, LayoutView } from "panes/keyboard.slint";
+import { DeviceView, SoundState } from "panes/sound.slint";
+import { MixerAppView, MixerState } from "panes/mixer.slint";
+import { NotificationAppView, NotificationsState } from "panes/notifications.slint";
+import { EnergyState, PlanView } from "panes/energy.slint";
+import { WallpaperCollection, WallpaperState, WallpaperThumb } from "panes/wallpaper.slint";
+import { DisplaysState, ScreenView } from "panes/displays.slint";
+import { WifiNetworkView, WifiState } from "panes/wifi.slint";
+import { AirdropFileView, AirdropPeerView, AirdropReceivedView, AirdropState } from "panes/airdrop.slint";
+import { BluetoothDeviceView, BluetoothState } from "panes/bluetooth.slint";
+import { AdapterView, DnsView, NetworkState } from "panes/network.slint";
+import { AccountState } from "panes/account.slint";
+import { AppsState, CatalogAppView, CatalogGroupView, InstalledAppView, LeftoverView } from "panes/apps.slint";
+import { ICloudState, PhotoView } from "panes/icloud.slint";
+import { AppSettingsState } from "panes/app-settings.slint";
+import { ConsoleState, LogEntryView } from "panes/console.slint";
+import { FirewallView, SecurityState, ThreatView } from "panes/security.slint";
+
+// Contrato con Rust: globales y structs que usa el código de la app.
+export { Theme, Tint, Tints, App, Dialog, Nav, PaneInfo, Registry, SearchResult, Toasts, ToastView }
+export { DriveView, GeneralState, RemovedStartupView, StartupView }
+export { AppearanceState, AccessibilityState }
+export { AppxView, OptimizeState }
+export { TweakCategory, TweakSection, TweaksState, TweakView }
+export { MouseState, KeyboardState, LanguageView, LayoutView, DeviceView, SoundState, MixerAppView, MixerState }
+export { NotificationAppView, NotificationsState }
+export { EnergyState, PlanView, WallpaperCollection, WallpaperState, WallpaperThumb, DisplaysState, ScreenView }
+export { WifiNetworkView, WifiState, BluetoothDeviceView, BluetoothState, AdapterView, DnsView, NetworkState }
+export { AccountState, AppsState, CatalogAppView, CatalogGroupView, InstalledAppView, LeftoverView }
+export { ICloudState, PhotoView }
+export { AppSettingsState, ConsoleState, LogEntryView }
+export { FirewallView, SecurityState, ThreatView }
+export { AirdropFileView, AirdropPeerView, AirdropReceivedView, AirdropState }
+
+export component AppWindow inherits Window {
+    title: "LiquidControl";
+    // 1000px quedaba justo: con la barra lateral (260px) y los márgenes del
+    // contenido (52px), el recuadro central no llegaba a los 700px de ancho
+    // y filas con muchos accesorios (badge + botón, o desplegables como los
+    // de Energía) se cortaban contra el borde. Con este ancho el recuadro
+    // central llega a sus 700px libres con margen de sobra, y no se ve tan
+    // ajustado si el usuario tiene la tipografía o el DPI de Windows más
+    // grande (que agranda todo el contenido sin agrandar la ventana).
+    preferred-width: 1140px;
+    preferred-height: 760px;
+    min-width: 860px;
+    min-height: 540px;
+    no-frame: true;
+    // Borde invisible para redimensionar la ventana sin marco (lo maneja Slint).
+    // Más ancho que el mínimo: con las esquinas estilo macOS activadas, los
+    // píxeles justo en la punta de la esquina quedan fuera de la ventana
+    // real (recortada con una región) y no reciben clics, así que hace
+    // falta más margen para poder agarrar bien cerca de ahí.
+    resize-border-width: App.maximized ? 0px : 10px;
+    background: Theme.window;
+    default-font-family: "Segoe UI Variable Text";
+    default-font-size: 13px;
+
+    ContentArea {
+        x: Theme.content-x;
+        width: root.width - Theme.content-x;
+        height: root.height;
+    }
+    Sidebar {
+        x: 8px;
+        y: 8px;
+        height: root.height - 16px;
+    }
+    ToastStack {
+        x: Theme.content-x;
+        width: root.width - Theme.content-x;
+        height: self.preferred-height;
+        y: root.height - self.height - 18px;
+    }
+    if Dialog.open: DialogOverlay {
+        width: root.width;
+        height: root.height;
+    }
+    // Esquinas estilo macOS: borde fino suavizado sobre el recorte de la ventana
+    // (no recibe clics).
+    if App.mac-corners: Rectangle {
+        width: root.width;
+        height: root.height;
+        border-radius: 11px;
+        border-width: 1px;
+        border-color: Theme.dark ? #ffffff2e : #00000038;
+    }
+}

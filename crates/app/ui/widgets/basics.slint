@@ -1,0 +1,920 @@
+// Componentes base con estética de macOS Tahoe: ícono de panel, interruptor,
+// botón, filas y secciones agrupadas.
+//
+// Patrón de datos: los controles reciben su valor (`in property`) y avisan con
+// un callback; el dueño actualiza el estado. Así las vinculaciones nunca se rompen.
+//
+// Tamaño del código generado: Slint copia un componente entero en cada lugar
+// donde se usa si (1) se le pasan hijos (`@children`) o (2) su elemento raíz
+// tiene `opacity`, `drop-shadow-*`, `visible` o una animación sobre una
+// propiedad del elemento (`animate background`, `animate transform-*`…).
+// Las filas y los controles se usan cientos de veces, así que:
+// - no aceptan hijos: los accesorios de la derecha se eligen con propiedades;
+// - sombras, opacidad y animaciones van en un hijo, nunca en la raíz.
+// `CustomRow` acepta hijos solo para los pocos casos únicos.
+
+import { Theme, Tint, Tints } from "../theme.slint";
+import { Badge, Checkbox, PopupButton, Segmented, Slider, WifiGlyph } from "controls.slint";
+import { AppIcon } from "app-icon.slint";
+import { InfoButton } from "info-button.slint";
+
+// Cuadrado redondeado con degradé y glifo blanco, como los íconos de LiquidControl.
+export component IconTile {
+    in property <image> icon;
+    in property <Tint> tint: Tints.gray;
+    in property <length> size: 22px;
+    width: root.size;
+    height: root.size;
+    Rectangle {
+        border-radius: root.size * 0.26;
+        background: @linear-gradient(180deg, root.tint.top 0%, root.tint.bottom 100%);
+        drop-shadow-blur: 1.5px;
+        drop-shadow-color: #00000033;
+        drop-shadow-offset-y: 0.5px;
+        // Reflejo de vidrio en la mitad superior.
+        Rectangle {
+            y: 0;
+            height: parent.height * 0.5;
+            border-top-left-radius: root.size * 0.26;
+            border-top-right-radius: root.size * 0.26;
+            background: @linear-gradient(180deg, rgba(255, 255, 255, 0.14 + 0.14 * Theme.glass) 0%, rgba(255, 255, 255, 0) 100%);
+        }
+        Image {
+            source: root.icon;
+            width: root.size * 0.62;
+            height: root.size * 0.62;
+            colorize: white;
+        }
+    }
+}
+
+// Interruptor estilo Tahoe: al presionarlo la perilla se vuelve una burbuja de vidrio.
+export component Toggle {
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    in property <string> label;
+    callback toggled(bool);
+
+    // Proporción de macOS Tahoe: cápsula más baja y alargada (2:1), con la
+    // perilla también en forma de cápsula.
+    width: 38px;
+    height: 19px;
+    accessible-role: switch;
+    accessible-checked: root.checked;
+    accessible-label: root.label;
+    accessible-action-default => { if root.enabled { root.toggled(!root.checked); } }
+    forward-focus: focus;
+
+    Rectangle {
+        border-radius: root.height / 2;
+        background: root.checked ? Theme.accent-brush : Theme.switch-off;
+        opacity: root.enabled ? 1 : 0.45;
+        animate background { duration: Theme.quick; }
+    }
+    Rectangle {
+        property <bool> pressed: touch.pressed;
+        width: self.pressed ? 30px : 22px;
+        height: self.pressed ? 23px : 15px;
+        x: root.checked ? root.width - self.width - 2px + (self.pressed ? 4px : 0px) : 2px - (self.pressed ? 4px : 0px);
+        y: (root.height - self.height) / 2;
+        border-radius: self.height / 2;
+        background: self.pressed ? #ffffff3d : #ffffff;
+        border-width: self.pressed ? 1px : 0px;
+        border-color: #ffffffe6;
+        drop-shadow-blur: self.pressed ? 8px : 2.5px;
+        drop-shadow-color: #00000047;
+        drop-shadow-offset-y: 1px;
+        opacity: root.enabled ? 1 : 0.7;
+        animate x, width, height, background, drop-shadow-blur {
+            duration: Theme.smooth;
+            easing: cubic-bezier(0.32, 0.72, 0, 1);
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.toggled(!root.checked); }
+    }
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" {
+                root.toggled(!root.checked);
+                return accept;
+            }
+            return reject;
+        }
+    }
+    if focus.has-focus: Rectangle {
+        x: -3px;
+        y: -3px;
+        width: root.width + 6px;
+        height: root.height + 6px;
+        border-radius: self.height / 2;
+        border-width: 3px;
+        border-color: Theme.accent.with-alpha(0.4);
+    }
+}
+
+// Botón al estilo de Ajustes del Sistema: solo texto, sin fondo; la cápsula
+// aparece únicamente mientras se presiona. El principal va relleno con el acento.
+export component Button {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <bool> primary: false;
+    in property <bool> destructive: false;
+    // Se conserva por compatibilidad: todos los botones secundarios son de texto.
+    in property <bool> plain: false;
+    in property <bool> small: false;
+    in property <bool> enabled: true;
+    in property <bool> busy: false;
+    callback clicked();
+
+    property <bool> active: root.enabled && !root.busy;
+    property <color> fg: root.primary ? Theme.on-accent : root.destructive ? Theme.danger : Theme.accent;
+    // Solo el hover/press "de vidrio" cuando el color de acento elegido es
+    // Vidrio líquido, y solo en los botones que van teñidos con el acento
+    // (no en los destructivos, que se quedan en rojo).
+    property <bool> glassy: !root.destructive && Theme.accent-glass;
+
+    // Más fino que antes: el ancho lo da el texto, no hace falta que la cápsula
+    // crezca a lo ancho para verse "grande"; solo el alto la hacía sentir tosca.
+    height: root.small ? 20px : 22px;
+    min-width: self.height;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-action-default => { if root.active { root.clicked(); } }
+
+    Rectangle {
+        transform-scale-x: touch.pressed && root.active ? 1 - 2 * Theme.squish : 1;
+        transform-scale-y: touch.pressed && root.active ? 1 - 2 * Theme.squish : 1;
+        animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        Rectangle {
+            border-radius: self.height / 2;
+            background: root.primary ? Theme.accent-brush
+                : root.glassy ? Theme.accent-wash
+                : touch.pressed && root.active ? root.fg.with-alpha(0.16)
+                : transparent;
+            opacity: root.primary && !root.active ? 0.45
+                : !root.primary && root.glassy ? (touch.pressed && root.active ? 1 : touch.has-hover ? 0.75 : 0)
+                : 1;
+            animate background, opacity { duration: Theme.quick; }
+        }
+        HorizontalLayout {
+            padding-left: root.text == "" ? 0px : (root.small ? 8px : 10px);
+            padding-right: self.padding-left;
+            spacing: 4px;
+            alignment: center;
+            if root.busy || root.has-icon: VerticalLayout {
+                alignment: center;
+                Image {
+                    source: root.busy ? @image-url("../icons/refresh-cw.svg") : root.icon;
+                    width: root.small ? 11px : 12px;
+                    height: self.width;
+                    colorize: root.active ? root.fg : root.fg.with-alpha(0.4);
+                }
+            }
+            if root.text != "": Text {
+                text: root.text;
+                color: root.active || root.primary ? root.fg : root.fg.with-alpha(0.4);
+                font-size: root.small ? 11.5px : 12.5px;
+                font-weight: root.primary ? 600 : 500;
+                vertical-alignment: center;
+            }
+        }
+    }
+    touch := TouchArea {
+        enabled: root.active;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Separador de 1 px entre filas (con sangría si la fila tiene ícono). Ocupa
+// toda la fila (sin recibir clics) y dibuja la línea arriba de todo.
+component RowSeparator inherits Rectangle {
+    in property <bool> indented;
+    Rectangle {
+        x: root.indented ? 42px : 10px;
+        y: 0px;
+        width: root.width - self.x - 10px;
+        height: 1px;
+        background: Theme.separator;
+    }
+}
+
+// Fondo de una fila: resaltado de búsqueda, hover y presionado (animado).
+component RowBackground inherits Rectangle {
+    in property <bool> highlighted;
+    in property <bool> hovered;
+    in property <bool> pressed;
+    Rectangle {
+        background: root.highlighted ? Theme.accent.with-alpha(0.18)
+            : root.pressed ? Theme.pressed
+            : root.hovered ? Theme.hover : transparent;
+        animate background { duration: Theme.quick; }
+    }
+}
+
+// Título y subtítulo de una fila, con el ícono opcional a la izquierda: baldosa
+// de color (`has-icon`), ícono de app (`leading-app`) o glifo gris (`has-glyph`).
+component RowLead inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> sub;
+    in property <image> icon;
+    in property <Tint> tint;
+    in property <bool> has-icon;
+    in property <bool> leading-app;
+    in property <image> app-icon;
+    in property <bool> app-icon-set;
+    in property <string> app-letter;
+    in property <image> glyph;
+    in property <bool> has-glyph;
+    // Fila desactivada o atenuada: texto más claro.
+    in property <bool> dim;
+    spacing: 10px;
+    horizontal-stretch: 1;
+    if root.has-icon: VerticalLayout {
+        alignment: center;
+        IconTile { icon: root.icon; tint: root.tint; }
+    }
+    if root.leading-app: VerticalLayout {
+        alignment: center;
+        AppIcon {
+            icon: root.app-icon;
+            has-icon: root.app-icon-set;
+            letter: root.app-letter;
+            tint: root.tint;
+        }
+    }
+    if root.has-glyph: VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 19px;
+            height: 19px;
+            Image {
+                source: root.glyph;
+                width: 14px;
+                height: 14px;
+                colorize: root.dim ? Theme.label3 : Theme.label2;
+            }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        spacing: 2px;
+        horizontal-stretch: 1;
+        Text {
+            text: root.label;
+            color: root.dim ? Theme.label3 : Theme.label;
+            font-size: 13px;
+            overflow: elide;
+        }
+        if root.sub != "": Text {
+            text: root.sub;
+            color: root.dim ? Theme.label3 : Theme.label2;
+            font-size: 11px;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// Fila de un grupo: ícono opcional, título, subtítulo y accesorios a la derecha
+// (en este orden): insignias, valor, punto de estado, candado, barras de Wi‑Fi,
+// marca, botones, casilla, interruptor, radio y flecha.
+export component Row inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    in property <string> value;
+    in property <image> icon;
+    in property <Tint> tint: Tints.gray;
+    in property <bool> has-icon: false;
+    in property <bool> leading-app: false;
+    in property <image> app-icon;
+    in property <bool> app-icon-set: false;
+    in property <string> app-letter;
+    in property <image> glyph;
+    in property <bool> has-glyph: false;
+    in property <bool> first: false;
+    in property <bool> clickable: false;
+    in property <bool> external: false;
+    // Flecha a la derecha en las filas clicables (se oculta en listas de selección).
+    in property <bool> chevron: true;
+    in property <bool> enabled: true;
+    // Atenuada pero clicable (p. ej. un plan que todavía no está agregado).
+    in property <bool> dimmed: false;
+    in property <bool> highlighted: false;
+
+    in property <string> badge;
+    in property <color> badge-tone: Theme.warning;
+    in property <string> badge2;
+    in property <color> badge2-tone: Theme.label2;
+    // 0 = sin punto, 1 = verde (activo), 2 = rojo (inactivo)
+    in property <int> dot: 0;
+    in property <bool> lock: false;
+    // Barras de Wi‑Fi 0–3; -1 = no se muestran
+    in property <int> wifi-level: -1;
+    in property <bool> checkmark: false;
+    // Subícono de información (ⓘ), con descripción al dejar el mouse encima.
+    in property <bool> info: false;
+    in property <bool> info-active: false;
+    in property <string> info-tooltip: @tr("Ver más información.");
+    callback info-clicked();
+    in property <string> button;
+    in property <image> button-icon;
+    in property <bool> button-has-icon: false;
+    in property <bool> button-primary: false;
+    in property <bool> button-destructive: false;
+    in property <bool> button-plain: false;
+    in property <bool> button-busy: false;
+    in property <bool> button-enabled: true;
+    in property <string> button2;
+    in property <bool> button2-destructive: false;
+    in property <bool> button2-enabled: true;
+    in property <bool> checkbox: false;
+    in property <bool> toggle: false;
+    in property <bool> checked: false;
+    in property <bool> toggle-enabled: true;
+    // Botón de radio: -1 = no se muestra, 0 = apagado, 1 = elegido, 2 = aplicando
+    in property <int> radio: -1;
+
+    callback clicked();
+    callback toggled(bool);
+    callback button-clicked();
+    callback button2-clicked();
+
+    min-height: root.sub != "" ? 50px : 40px;
+    accessible-role: list-item;
+    accessible-label: root.label;
+    accessible-action-default => { if root.clickable && root.enabled { root.clicked(); } }
+
+    RowBackground {
+        highlighted: root.highlighted;
+        hovered: touch.has-hover && root.clickable;
+        pressed: touch.pressed;
+    }
+    // Debajo del contenido: los controles de la derecha reciben sus propios clics.
+    touch := TouchArea {
+        enabled: root.clickable && root.enabled;
+        clicked => { root.clicked(); }
+    }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        RowLead {
+            label: root.label;
+            sub: root.sub;
+            icon: root.icon;
+            tint: root.tint;
+            has-icon: root.has-icon;
+            leading-app: root.leading-app;
+            app-icon: root.app-icon;
+            app-icon-set: root.app-icon-set;
+            app-letter: root.app-letter;
+            glyph: root.glyph;
+            has-glyph: root.has-glyph;
+            dim: !root.enabled || root.dimmed;
+        }
+        if root.badge != "": VerticalLayout {
+            alignment: center;
+            Badge { text: root.badge; tone: root.badge-tone; }
+        }
+        if root.badge2 != "": VerticalLayout {
+            alignment: center;
+            Badge { text: root.badge2; tone: root.badge2-tone; }
+        }
+        if root.value != "": Text {
+            text: root.value;
+            color: Theme.label2;
+            font-size: 13px;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+            overflow: elide;
+            max-width: 320px;
+        }
+        if root.dot > 0: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: root.dot == 1 ? Theme.success : Theme.danger;
+            }
+        }
+        if root.lock: VerticalLayout {
+            alignment: center;
+            Image {
+                source: @image-url("../icons/lock.svg");
+                width: 12px;
+                height: 12px;
+                colorize: Theme.label2;
+            }
+        }
+        if root.wifi-level >= 0: VerticalLayout {
+            alignment: center;
+            WifiGlyph { level: root.wifi-level; }
+        }
+        if root.checkmark: VerticalLayout {
+            alignment: center;
+            Image {
+                source: @image-url("../icons/check.svg");
+                width: 14px;
+                height: 14px;
+                colorize: Theme.accent;
+            }
+        }
+        if root.info: VerticalLayout {
+            alignment: center;
+            InfoButton {
+                active: root.info-active;
+                tooltip: root.info-tooltip;
+                clicked => { root.info-clicked(); }
+            }
+        }
+        // Los botones van juntos, con aire entre ellos.
+        if root.button != "" || root.button2 != "": HorizontalLayout {
+            spacing: 14px;
+            if root.button != "": VerticalLayout {
+                alignment: center;
+                Button {
+                    text: root.button;
+                    small: true;
+                    icon: root.button-icon;
+                    has-icon: root.button-has-icon;
+                    primary: root.button-primary;
+                    destructive: root.button-destructive;
+                    busy: root.button-busy;
+                    enabled: root.button-enabled && root.enabled;
+                    clicked => { root.button-clicked(); }
+                }
+            }
+            if root.button2 != "": VerticalLayout {
+                alignment: center;
+                Button {
+                    text: root.button2;
+                    small: true;
+                    destructive: root.button2-destructive;
+                    enabled: root.button2-enabled && root.enabled;
+                    clicked => { root.button2-clicked(); }
+                }
+            }
+        }
+        if root.checkbox: VerticalLayout {
+            alignment: center;
+            Checkbox {
+                checked: root.checked;
+                label: root.label;
+                toggled(value) => { root.toggled(value); }
+            }
+        }
+        if root.toggle: VerticalLayout {
+            alignment: center;
+            Toggle {
+                checked: root.checked;
+                enabled: root.toggle-enabled && root.enabled;
+                label: root.label;
+                toggled(value) => { root.toggled(value); }
+            }
+        }
+        if root.radio >= 0: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                border-width: root.radio == 1 ? 5px : 1.5px;
+                border-color: root.radio >= 1 ? Theme.accent : Theme.label3;
+                opacity: root.radio == 2 ? 0.5 : 1;
+                animate border-width { duration: Theme.quick; }
+            }
+        }
+        if root.clickable && root.chevron: VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.external ? @image-url("../icons/arrow-up-right.svg") : @image-url("../icons/chevron-right.svg");
+                width: 14px;
+                height: 14px;
+                colorize: Theme.label3;
+            }
+        }
+    }
+    if !root.first: RowSeparator { indented: root.has-icon || root.leading-app || root.has-glyph; }
+}
+
+// Fila con deslizador (volumen, velocidades, tamaños). Puede llevar un ícono de
+// app a la izquierda, un botón de silencio y glifos a los costados del deslizador.
+export component SliderRow inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    // Texto a la izquierda del deslizador (p. ej. "57 %")
+    in property <string> value-text;
+    in property <bool> first: false;
+    in property <bool> highlighted: false;
+    in property <bool> enabled: true;
+    in property <Tint> tint: Tints.gray;
+    in property <bool> leading-app: false;
+    in property <image> app-icon;
+    in property <bool> app-icon-set: false;
+    in property <string> app-letter;
+    in property <float> value;
+    in property <float> minimum: 0;
+    in property <float> maximum: 100;
+    in property <float> step: 1;
+    in property <int> ticks: 0;
+    in property <string> min-label;
+    in property <string> max-label;
+    in property <length> slider-width: 260px;
+    in property <image> start-icon;
+    in property <bool> has-start-icon: false;
+    in property <length> start-icon-size: 15px;
+    // Ancho fijo del lugar del ícono (0 = el tamaño del ícono), para que no salte al crecer.
+    in property <length> start-icon-box: 0px;
+    in property <image> end-icon;
+    in property <bool> has-end-icon: false;
+    in property <length> end-icon-size: 17px;
+    in property <bool> mute-button: false;
+    in property <bool> muted: false;
+    callback moved(float);
+    callback released(float);
+    callback mute-toggled(bool);
+
+    min-height: root.sub != "" ? 50px : 40px;
+    accessible-role: list-item;
+    accessible-label: root.label;
+
+    RowBackground { highlighted: root.highlighted; }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        RowLead {
+            label: root.label;
+            sub: root.sub;
+            tint: root.tint;
+            leading-app: root.leading-app;
+            app-icon: root.app-icon;
+            app-icon-set: root.app-icon-set;
+            app-letter: root.app-letter;
+            dim: !root.enabled;
+        }
+        if root.value-text != "": Text {
+            text: root.value-text;
+            color: Theme.label2;
+            font-size: 13px;
+            vertical-alignment: center;
+        }
+        if root.mute-button: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 26px;
+                height: 26px;
+                border-radius: 13px;
+                background: mute-touch.pressed ? Theme.pressed : transparent;
+                accessible-role: button;
+                accessible-label: root.muted ? @tr("Activar sonido") : @tr("Silenciar");
+                Image {
+                    source: root.muted || root.value == 0 ? @image-url("../icons/volume-x.svg")
+                        : root.value < 50 ? @image-url("../icons/volume-1.svg")
+                        : @image-url("../icons/volume-2.svg");
+                    width: 15px;
+                    height: 15px;
+                    colorize: root.muted ? Theme.danger : Theme.label2;
+                }
+                mute-touch := TouchArea {
+                    enabled: root.enabled;
+                    clicked => { root.mute-toggled(!root.muted); }
+                }
+            }
+        }
+        if root.has-start-icon: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: root.start-icon-box > 0px ? root.start-icon-box : root.start-icon-size;
+                height: max(root.start-icon-size, 15px);
+                Image {
+                    source: root.start-icon;
+                    width: root.start-icon-size;
+                    height: root.start-icon-size;
+                    colorize: Theme.label2;
+                    animate width, height { duration: Theme.quick; }
+                }
+            }
+        }
+        Slider {
+            width: root.slider-width;
+            label: root.label;
+            value: root.value;
+            minimum: root.minimum;
+            maximum: root.maximum;
+            step: root.step;
+            ticks: root.ticks;
+            min-label: root.min-label;
+            max-label: root.max-label;
+            enabled: root.enabled;
+            moved(value) => { root.moved(value); }
+            released(value) => { root.released(value); }
+        }
+        if root.has-end-icon: VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.end-icon;
+                width: root.end-icon-size;
+                height: root.end-icon-size;
+                colorize: Theme.label2;
+            }
+        }
+    }
+    if !root.first: RowSeparator { indented: root.leading-app; }
+}
+
+// Fila con menú emergente (tiempos de espera, resolución…).
+export component PopupRow inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    in property <bool> first: false;
+    in property <bool> highlighted: false;
+    in property <bool> enabled: true;
+    in property <[string]> options;
+    in property <int> selected;
+    in property <length> popup-width: 0px;
+    callback activated(int);
+
+    min-height: root.sub != "" ? 50px : 40px;
+    accessible-role: list-item;
+    accessible-label: root.label;
+
+    RowBackground { highlighted: root.highlighted; }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        RowLead { label: root.label; sub: root.sub; dim: !root.enabled; }
+        VerticalLayout {
+            alignment: center;
+            PopupButton {
+                min-width: max(120px, root.popup-width);
+                label: root.label;
+                options: root.options;
+                selected: root.selected;
+                enabled: root.enabled;
+                activated(index) => { root.activated(index); }
+            }
+        }
+    }
+    if !root.first: RowSeparator { }
+}
+
+// Fila con control segmentado (tema, botón principal…).
+export component SegmentedRow inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    in property <bool> first: false;
+    in property <bool> highlighted: false;
+    in property <bool> enabled: true;
+    in property <[string]> labels;
+    in property <int> selected;
+    in property <length> segmented-width: 200px;
+    callback activated(int);
+
+    min-height: root.sub != "" ? 50px : 40px;
+    accessible-role: list-item;
+    accessible-label: root.label;
+
+    RowBackground { highlighted: root.highlighted; }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        RowLead { label: root.label; sub: root.sub; dim: !root.enabled; }
+        VerticalLayout {
+            alignment: center;
+            Segmented {
+                width: root.segmented-width;
+                labels: root.labels;
+                selected: root.selected;
+                enabled: root.enabled;
+                activated(index) => { root.activated(index); }
+            }
+        }
+    }
+    if !root.first: RowSeparator { }
+}
+
+// Fila con contenido propio a la derecha (@children). Solo para casos únicos:
+// Slint copia su código en cada uso.
+export component CustomRow inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    in property <image> icon;
+    in property <Tint> tint: Tints.gray;
+    in property <bool> has-icon: false;
+    in property <bool> first: false;
+    in property <bool> highlighted: false;
+
+    min-height: root.sub != "" ? 50px : 40px;
+    accessible-role: list-item;
+    accessible-label: root.label;
+    background: root.highlighted ? Theme.accent.with-alpha(0.18) : transparent;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        RowLead {
+            label: root.label;
+            sub: root.sub;
+            icon: root.icon;
+            tint: root.tint;
+            has-icon: root.has-icon;
+        }
+        @children
+    }
+    if !root.first: RowSeparator { indented: root.has-icon; }
+}
+
+// Título y botón de acción de una sección (se genera una sola vez).
+component SectionHeader inherits VerticalLayout {
+    in property <string> title;
+    in property <string> action;
+    in property <bool> action-busy;
+    in property <bool> action-enabled: true;
+    in property <bool> action-destructive;
+    callback action-clicked();
+    if root.title != "" || root.action != "": HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 2px;
+        padding-bottom: 5px;
+        spacing: 8px;
+        Text {
+            text: root.title;
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.label;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        if root.action != "": Button {
+            text: root.action;
+            destructive: root.action-destructive;
+            small: true;
+            busy: root.action-busy;
+            enabled: root.action-enabled;
+            clicked => { root.action-clicked(); }
+        }
+    }
+}
+
+// Texto al pie de una sección (se genera una sola vez).
+component SectionFooter inherits VerticalLayout {
+    in property <string> footer;
+    // VerticalLayout y no HorizontalLayout: en uno horizontal, Slint calcula el
+    // alto de un texto con salto de línea como si tuviera ancho infinito y el
+    // pie quedaba cortado en la primera línea.
+    if root.footer != "": VerticalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 7px;
+        Text {
+            text: root.footer;
+            font-size: 11px;
+            color: Theme.label2;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// Grupo "inset": título opcional, caja redondeada y pie de texto.
+export component Section {
+    in property <string> title;
+    in property <string> footer;
+    in property <string> action;
+    in property <bool> action-busy: false;
+    in property <bool> action-enabled: true;
+    in property <bool> action-destructive: false;
+    callback action-clicked();
+
+    VerticalLayout {
+        SectionHeader {
+            title: root.title;
+            action: root.action;
+            action-busy: root.action-busy;
+            action-enabled: root.action-enabled;
+            action-destructive: root.action-destructive;
+            action-clicked => { root.action-clicked(); }
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, Theme.group-top 0%, Theme.group 55%);
+            border-radius: Theme.radius-group;
+            border-width: 1px;
+            border-color: Theme.group-border;
+            clip: true;
+            VerticalLayout {
+                @children
+            }
+        }
+        SectionFooter { footer: root.footer; }
+    }
+}
+
+// Encabezado de panel: ícono grande, título y descripción centrados.
+export component PaneHeader inherits Rectangle {
+    in property <image> icon;
+    in property <Tint> tint;
+    in property <string> title;
+    in property <string> description;
+
+    background: @linear-gradient(180deg, Theme.group-top 0%, Theme.group 70%);
+    border-radius: Theme.radius-group;
+    border-width: 1px;
+    border-color: Theme.group-border;
+
+    // El ícono entra con un pequeño rebote cada vez que se abre el panel.
+    property <bool> shown: false;
+    Timer {
+        interval: 16ms;
+        running: !root.shown;
+        triggered => { root.shown = true; }
+    }
+
+    VerticalLayout {
+        padding-top: 20px;
+        padding-bottom: 18px;
+        padding-left: 28px;
+        padding-right: 28px;
+        spacing: 8px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 54px;
+                height: 54px;
+                transform-scale-x: root.shown ? 1 : 1 - 0.3 * min(1, Theme.motion);
+                transform-scale-y: root.shown ? 1 : 1 - 0.3 * min(1, Theme.motion);
+                animate transform-scale-x, transform-scale-y { duration: Theme.bouncy; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+                IconTile { icon: root.icon; tint: root.tint; size: 54px; }
+            }
+        }
+        Text {
+            text: root.title;
+            font-size: 15px;
+            font-weight: 650;
+            color: Theme.label;
+            horizontal-alignment: center;
+        }
+        if root.description != "": Text {
+            text: root.description;
+            font-size: 12px;
+            color: Theme.label2;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+// Encabezado en fila para subpáginas: ícono, título, descripción y controles (@children).
+export component CompactHeader inherits Rectangle {
+    in property <image> icon;
+    in property <Tint> tint;
+    in property <string> title;
+    in property <string> description;
+
+    background: @linear-gradient(180deg, Theme.group-top 0%, Theme.group 70%);
+    border-radius: Theme.radius-group;
+    border-width: 1px;
+    border-color: Theme.group-border;
+
+    HorizontalLayout {
+        padding: 12px;
+        padding-left: 14px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            IconTile { icon: root.icon; tint: root.tint; size: 38px; }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+            Text { text: root.title; font-size: 13px; font-weight: 600; color: Theme.label; }
+            if root.description != "": Text {
+                text: root.description;
+                font-size: 11px;
+                color: Theme.label2;
+                wrap: word-wrap;
+            }
+        }
+        @children
+    }
+}

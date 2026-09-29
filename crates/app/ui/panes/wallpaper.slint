@@ -1,0 +1,276 @@
+// Panel Fondo de pantalla (debajo de Apariencia en la barra lateral): vista
+// previa, galería de imágenes, colores sólidos, fondos gratis en línea y
+// "volver al fondo anterior".
+
+import { Theme, Tints } from "../theme.slint";
+import { Button, PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { PopupButton, SearchField } from "../widgets/controls.slint";
+
+export struct WallpaperThumb {
+    path: string,
+    // Ruta en minúsculas para comparar (Windows no distingue mayúsculas).
+    key: string,
+    name: string,
+    image: image,
+    loaded: bool,
+}
+
+export struct WallpaperCollection {
+    title: string,
+    images: [WallpaperThumb],
+}
+
+export global WallpaperState {
+    in property <bool> loaded;
+    // "" = color sólido
+    in property <string> current-key;
+    in property <string> current-name;
+    in property <image> preview;
+    in property <bool> has-preview;
+    in property <color> color;
+    in property <int> position;
+    in property <[string]> position-labels;
+    in property <[WallpaperCollection]> collections;
+    in property <[color]> colors;
+    // Fondo que había antes del último cambio ("" = no hay).
+    in property <string> previous-name;
+    // Búsqueda de fondos gratis en línea (Wallhaven, hechos por la comunidad).
+    in property <bool> searching;
+    in property <bool> downloading;
+    in property <[WallpaperThumb]> search-results;
+    callback choose(string);
+    callback search-wallpapers(string);
+    callback set-position(int);
+    callback set-color(color);
+    callback pick-file();
+    callback restore-previous();
+}
+
+component Preview inherits Rectangle {
+    height: 230px;
+    border-radius: 16px;
+    clip: true;
+    background: WallpaperState.color;
+    drop-shadow-blur: 12px + 12px * Theme.glass;
+    drop-shadow-color: Theme.shadow;
+    drop-shadow-offset-y: 6px;
+    animate background { duration: Theme.smooth; }
+    if WallpaperState.has-preview: Image {
+        width: 100%;
+        height: 100%;
+        source: WallpaperState.preview;
+        image-fit: cover;
+    }
+    // Cápsula de vidrio flotante con el nombre y el ajuste.
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height - 16px;
+        width: info.preferred-width;
+        height: 40px;
+        border-radius: 20px;
+        background: @linear-gradient(180deg, rgba(255, 255, 255, 0.12 + 0.16 * Theme.glass) 0%, rgba(255, 255, 255, 0.04 + 0.06 * Theme.glass) 100%);
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, min(0.9, 0.25 + 0.3 * Theme.glass));
+        drop-shadow-blur: Theme.glass-blur;
+        drop-shadow-color: #00000045;
+        drop-shadow-offset-y: 3px;
+        info := HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 8px;
+            spacing: 14px;
+            Text {
+                text: WallpaperState.current-name;
+                color: #ffffff;
+                font-weight: 600;
+                vertical-alignment: center;
+                max-width: 260px;
+                overflow: elide;
+            }
+            VerticalLayout {
+                alignment: center;
+                PopupButton {
+                    label: @tr("Ajuste");
+                    options: WallpaperState.position-labels;
+                    selected: WallpaperState.position;
+                    enabled: WallpaperState.current-key != "";
+                    activated(index) => { WallpaperState.set-position(index); }
+                }
+            }
+        }
+    }
+}
+
+// Grilla que acomoda tantas columnas como entren (mínimo 118 px por miniatura).
+component ThumbGrid {
+    in property <[WallpaperThumb]> images;
+    property <length> gap: 12px;
+    property <int> columns: max(1, Math.floor((self.width - self.gap) / (118px + self.gap)));
+    property <length> cell-width: (self.width - self.gap * (self.columns + 1)) / self.columns;
+    property <length> cell-height: self.cell-width * 0.625;
+    property <int> rows: Math.ceil(self.images.length / self.columns);
+
+    min-height: self.rows * (self.cell-height + self.gap) + self.gap;
+
+    for item[i] in root.images: Rectangle {
+        x: root.gap + Math.mod(i, root.columns) * (root.cell-width + root.gap);
+        y: root.gap + Math.floor(i / root.columns) * (root.cell-height + root.gap);
+        width: root.cell-width;
+        height: root.cell-height;
+        accessible-role: button;
+        accessible-label: item.name;
+        transform-scale-x: touch.pressed ? 1 - Theme.squish : touch.has-hover ? 1 + 0.6 * Theme.squish : 1;
+        transform-scale-y: touch.pressed ? 1 - Theme.squish : touch.has-hover ? 1 + 0.6 * Theme.squish : 1;
+        animate transform-scale-x, transform-scale-y { duration: Theme.smooth; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        Rectangle {
+            x: -4px;
+            y: -4px;
+            width: parent.width + 8px;
+            height: parent.height + 8px;
+            border-radius: 12px;
+            border-width: 2.5px;
+            border-color: item.key == WallpaperState.current-key ? Theme.accent : transparent;
+        }
+        Rectangle {
+            border-radius: 9px;
+            clip: true;
+            background: Theme.field;
+            border-width: 1px;
+            border-color: Theme.group-border;
+            if item.loaded: Image {
+                width: 100%;
+                height: 100%;
+                source: item.image;
+                image-fit: cover;
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { WallpaperState.choose(item.path); }
+        }
+    }
+}
+
+// Color sólido para elegir (resaltado si es el fondo actual).
+component ColorChip inherits Rectangle {
+    in property <color> tone;
+    property <bool> current: WallpaperState.current-key == "" && WallpaperState.color == root.tone;
+    width: 40px;
+    height: 28px;
+    border-radius: 8px;
+    background: root.tone;
+    border-width: root.current ? 2.5px : 1px;
+    border-color: root.current ? Theme.accent : #00000026;
+    accessible-role: button;
+    accessible-label: @tr("Color sólido");
+    transform-scale-x: touch.pressed ? 0.88 : touch.has-hover ? 1.08 : 1;
+    transform-scale-y: touch.pressed ? 0.88 : touch.has-hover ? 1.08 : 1;
+    animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { WallpaperState.set-color(root.tone); }
+    }
+}
+
+// Colores repartidos a lo ancho: si entran en una fila se separan para
+// llenarla entera; si no, bajan a otra fila, centrados.
+component ColorGrid {
+    in property <[color]> colors;
+    property <length> chip-w: 40px;
+    property <length> chip-h: 28px;
+    property <length> min-gap: 10px;
+    property <int> count: self.colors.length;
+    property <int> fit: max(1, Math.floor((self.width + self.min-gap) / (self.chip-w + self.min-gap)));
+    property <int> columns: max(1, min(self.count, self.fit));
+    property <bool> one-row: self.count <= self.fit;
+    property <length> gap: self.one-row && self.count > 1 ? (self.width - self.count * self.chip-w) / (self.count - 1) : self.min-gap;
+    property <length> offset: self.one-row ? 0px : (self.width - (self.columns * self.chip-w + (self.columns - 1) * self.gap)) / 2;
+    property <int> rows: Math.ceil(self.count / self.columns);
+
+    min-height: self.rows * self.chip-h + (self.rows - 1) * self.min-gap;
+
+    for tone[i] in root.colors: ColorChip {
+        x: root.offset + Math.mod(i, root.columns) * (root.chip-w + root.gap);
+        y: Math.floor(i / root.columns) * (root.chip-h + root.min-gap);
+        tone: tone;
+    }
+}
+
+export component WallpaperPage {
+    VerticalLayout {
+        spacing: 22px;
+        if WallpaperState.loaded: Preview { }
+        if WallpaperState.previous-name != "": Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/rotate-ccw.svg");
+                tint: Tints.gray;
+                label: @tr("Volver al fondo anterior");
+                sub: WallpaperState.previous-name;
+                button: @tr("Restaurar");
+                button-clicked => { WallpaperState.restore-previous(); }
+            }
+        }
+        Section {
+            title: @tr("Buscar fondos gratis en línea");
+            footer: @tr("Fondos hechos y compartidos por la comunidad en Wallhaven, gratis y de uso libre para tu escritorio.");
+            VerticalLayout {
+                padding: 12px;
+                spacing: 12px;
+                field := SearchField {
+                    placeholder: @tr("montañas, espacio, minimalista… (mejor en inglés)");
+                    accepted(text) => {
+                        if text != "" { WallpaperState.search-wallpapers(text); }
+                    }
+                }
+                if WallpaperState.searching: Text {
+                    text: @tr("Buscando…");
+                    font-size: 12px;
+                    color: Theme.label2;
+                }
+                if WallpaperState.downloading: Text {
+                    text: @tr("Descargando la imagen elegida…");
+                    font-size: 12px;
+                    color: Theme.label2;
+                }
+                if !WallpaperState.searching && WallpaperState.search-results.length > 0: ThumbGrid {
+                    images: WallpaperState.search-results;
+                }
+            }
+        }
+        for collection in WallpaperState.collections: Section {
+            title: collection.title;
+            ThumbGrid { images: collection.images; }
+        }
+        Section {
+            title: @tr("Color sólido");
+            footer: @tr("Reemplaza la imagen del escritorio por un color liso. Para recuperar la imagen usá «Volver al fondo anterior» o elegila en la galería.");
+            HorizontalLayout {
+                padding: 14px;
+                ColorGrid { colors: WallpaperState.colors; }
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            Button {
+                text: @tr("Agregar foto…");
+                has-icon: true;
+                icon: @image-url("../icons/image-plus.svg");
+                clicked => { WallpaperState.pick-file(); }
+            }
+        }
+    }
+}
+
+export component WallpaperPane {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/image.svg");
+            tint: Tints.cyan;
+            title: @tr("Fondo de pantalla");
+            description: @tr("Elegí una imagen, un color sólido o buscá fondos gratis hechos por la comunidad. Cada cambio se puede deshacer.");
+        }
+        WallpaperPage { }
+    }
+}

@@ -1,0 +1,223 @@
+// Panel Apariencia: modo claro/oscuro/mixto, color de acento de Windows (se
+// aplica directamente) y efectos visuales. El fondo de pantalla tiene su
+// propio panel (wallpaper.slint).
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { SwatchRow } from "../widgets/swatches.slint";
+
+export global AppearanceState {
+    in property <bool> loaded;
+    // 0 = claro, 1 = oscuro, 2 = mixto (apps claras, Windows oscuro)
+    in property <int> mode;
+    in property <color> accent;
+    // Acentos de Windows que se ofrecen y cuál está elegido (-1 = otro color).
+    in property <[color]> accent-colors;
+    in property <[string]> accent-labels;
+    in property <int> accent-index: -1;
+    // Windows elige el acento según el fondo de pantalla.
+    in property <bool> auto-accent;
+    in property <bool> system-light;
+    in property <bool> accent-on-taskbar;
+    in property <bool> accent-on-title-bars;
+    in property <bool> transparency;
+    in property <bool> animations;
+    in property <bool> scrollbars;
+    callback set-mode(int);
+    callback set-accent(int);
+    callback set-auto-accent(bool);
+    // "transparency", "accent-taskbar", "accent-title-bars", "animations" o "scrollbars"
+    callback set-flag(string, bool);
+}
+
+// Miniatura de una ventana sobre un fondo de pantalla, como en macOS.
+component ThemePreview {
+    in property <string> label;
+    in property <bool> selected;
+    in property <color> window-color;
+    in property <color> side-color;
+    in property <color> bar-color;
+    callback clicked();
+
+    width: 126px;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-checked: root.selected;
+    accessible-action-default => { root.clicked(); }
+
+    VerticalLayout {
+        spacing: 7px;
+        Rectangle {
+            height: 82px;
+            border-radius: 13px;
+            border-width: root.selected ? 2.5px : 0px;
+            border-color: Theme.accent;
+            transform-scale-x: touch.pressed ? 1 - 1.5 * Theme.squish : touch.has-hover ? 1 + 0.5 * Theme.squish : 1;
+            transform-scale-y: touch.pressed ? 1 - 1.5 * Theme.squish : touch.has-hover ? 1 + 0.5 * Theme.squish : 1;
+            animate transform-scale-x, transform-scale-y { duration: Theme.smooth; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+            animate border-width { duration: Theme.quick; }
+            Rectangle {
+                x: 4px;
+                y: 4px;
+                width: parent.width - 8px;
+                height: parent.height - 8px;
+                border-radius: 9px;
+                clip: true;
+                background: @linear-gradient(135deg, #5aa9ff 0%, #9a6bff 55%, #ff8a65 100%);
+                Rectangle {
+                    x: 14px;
+                    y: 10px;
+                    width: parent.width - 28px;
+                    height: parent.height - 26px;
+                    border-radius: 5px;
+                    clip: true;
+                    background: root.window-color;
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * 0.32;
+                        background: root.side-color;
+                    }
+                }
+                Rectangle {
+                    y: parent.height - 9px;
+                    height: 9px;
+                    background: root.bar-color;
+                }
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: 12px;
+            font-weight: root.selected ? 600 : 400;
+            color: Theme.label;
+            horizontal-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component AppearanceMain {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/contrast.svg");
+            tint: Tints.black;
+            title: @tr("Apariencia");
+            description: @tr("Modo claro u oscuro, color de acento, fondo de pantalla y efectos visuales de Windows.");
+        }
+        if AppearanceState.loaded: Section {
+            HorizontalLayout {
+                alignment: center;
+                spacing: 22px;
+                padding-top: 16px;
+                padding-bottom: 12px;
+                ThemePreview {
+                    label: @tr("Claro");
+                    selected: AppearanceState.mode == 0;
+                    window-color: #ffffff;
+                    side-color: #e9e9ec;
+                    bar-color: #f3f3f3eb;
+                    clicked => { AppearanceState.set-mode(0); }
+                }
+                ThemePreview {
+                    label: @tr("Oscuro");
+                    selected: AppearanceState.mode == 1;
+                    window-color: #2c2c2e;
+                    side-color: #1d1d1f;
+                    bar-color: #1e1e20eb;
+                    clicked => { AppearanceState.set-mode(1); }
+                }
+                ThemePreview {
+                    label: @tr("Mixto");
+                    selected: AppearanceState.mode == 2;
+                    window-color: #ffffff;
+                    side-color: #e9e9ec;
+                    bar-color: #1e1e20eb;
+                    clicked => { AppearanceState.set-mode(2); }
+                }
+            }
+            SwatchRow {
+                label: @tr("Color de acento");
+                sub: AppearanceState.auto-accent ? @tr("Automático: Windows lo elige según el fondo de pantalla.") : "";
+                highlighted: Nav.highlight == "accent";
+                colors: AppearanceState.accent-colors;
+                labels: AppearanceState.accent-labels;
+                selected: AppearanceState.auto-accent ? -1 : AppearanceState.accent-index;
+                activated(index) => { AppearanceState.set-accent(index); }
+            }
+            Row {
+                label: @tr("Elegir el acento según el fondo de pantalla");
+                toggle: true;
+                checked: AppearanceState.auto-accent;
+                toggled(value) => { AppearanceState.set-auto-accent(value); }
+            }
+            Row {
+                label: @tr("Mostrar el acento en Inicio y en la barra de tareas");
+                sub: AppearanceState.system-light ? @tr("Disponible cuando el modo de Windows es oscuro.") : "";
+                toggle: true;
+                checked: AppearanceState.accent-on-taskbar;
+                toggle-enabled: !AppearanceState.system-light;
+                toggled(value) => { AppearanceState.set-flag("accent-taskbar", value); }
+            }
+            Row {
+                label: @tr("Mostrar el acento en barras de título y bordes");
+                toggle: true;
+                checked: AppearanceState.accent-on-title-bars;
+                toggled(value) => { AppearanceState.set-flag("accent-title-bars", value); }
+            }
+            Row {
+                label: @tr("Más colores en Configuración de Windows");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:colors"); }
+            }
+        }
+        if AppearanceState.loaded: Section {
+            Row {
+                first: true;
+                label: @tr("Efectos de transparencia");
+                sub: @tr("Ventanas, menús y la barra de tareas translúcidos.");
+                highlighted: Nav.highlight == "transparency";
+                toggle: true;
+                checked: AppearanceState.transparency;
+                toggled(value) => { AppearanceState.set-flag("transparency", value); }
+            }
+            Row {
+                label: @tr("Efectos de animación");
+                sub: @tr("Animaciones al abrir, minimizar y maximizar ventanas.");
+                highlighted: Nav.highlight == "animations";
+                toggle: true;
+                checked: AppearanceState.animations;
+                toggled(value) => { AppearanceState.set-flag("animations", value); }
+            }
+            Row {
+                label: @tr("Mostrar siempre las barras de desplazamiento");
+                toggle: true;
+                checked: AppearanceState.scrollbars;
+                toggled(value) => { AppearanceState.set-flag("scrollbars", value); }
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/sparkles.svg");
+                tint: Tints.purple;
+                label: @tr("Apariencia de esta app");
+                sub: @tr("Tema, acento, tamaño de la interfaz, animaciones y Liquid Glass de LiquidControl.");
+                clickable: true;
+                clicked => { Nav.open("app", "", ""); }
+            }
+        }
+    }
+}
+
+export component AppearancePane {
+    VerticalLayout {
+        AppearanceMain { }
+    }
+}

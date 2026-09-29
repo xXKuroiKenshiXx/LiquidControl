@@ -1,0 +1,146 @@
+// Panel Red: adaptadores y, en la subpágina de cada uno, TCP/IP y servidores DNS.
+
+import { Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { AdminNotice } from "../widgets/notice.slint";
+
+export struct AdapterView {
+    id: string,
+    name: string,
+    detail: string,
+    // 0 = Ethernet, 1 = Wi‑Fi, 2 = otro
+    kind: int,
+    up: bool,
+}
+
+export struct DnsView {
+    name: string,
+    note: string,
+    server: string,
+    active: bool,
+    busy: bool,
+}
+
+export global NetworkState {
+    in property <bool> loaded;
+    in property <[AdapterView]> adapters;
+    // Subpágina del adaptador abierto (Nav.sub = id del adaptador)
+    in property <bool> detail-loaded;
+    in property <string> status;
+    in property <string> description;
+    in property <string> speed;
+    in property <string> mac;
+    in property <string> config;
+    in property <string> ipv4;
+    in property <string> gateway;
+    in property <string> ipv6;
+    in property <string> dns-in-use;
+    in property <[DnsView]> presets;
+    callback set-dns(int);
+}
+
+component AdapterList {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/globe.svg");
+            tint: Tints.blue;
+            title: @tr("Red");
+            description: @tr("Estado de tus conexiones, direcciones IP y servidores DNS.");
+        }
+        Section {
+            for adapter[i] in NetworkState.adapters: Row {
+                first: i == 0;
+                has-icon: true;
+                icon: adapter.kind == 0 ? @image-url("../icons/cable.svg")
+                    : adapter.kind == 1 ? @image-url("../icons/wifi.svg")
+                    : @image-url("../icons/network.svg");
+                tint: adapter.kind == 1 ? Tints.blue : Tints.gray;
+                label: adapter.name;
+                sub: adapter.detail;
+                dot: adapter.up ? 1 : 2;
+                clickable: true;
+                clicked => { Nav.open("network", adapter.id, ""); }
+            }
+            if NetworkState.loaded && NetworkState.adapters.length == 0: Row {
+                first: true;
+                label: @tr("No se encontraron adaptadores de red.");
+            }
+        }
+        Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/shield-check.svg");
+                tint: Tints.red;
+                label: @tr("Firewall y protección de red");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("windowsdefender://network"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/waypoints.svg");
+                tint: Tints.blue;
+                label: "VPN";
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:network-vpn"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/globe.svg");
+                tint: Tints.gray;
+                label: "Proxy";
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("ms-settings:network-proxy"); }
+            }
+        }
+    }
+}
+
+component AdapterDetail {
+    VerticalLayout {
+        spacing: 22px;
+        Section {
+            Row { first: true; label: @tr("Estado"); value: NetworkState.status; }
+            Row { label: @tr("Adaptador"); value: NetworkState.description; }
+            if NetworkState.speed != "": Row { label: @tr("Velocidad del enlace"); value: NetworkState.speed; }
+            Row { label: @tr("Dirección MAC"); value: NetworkState.mac; }
+        }
+        Section {
+            title: "TCP/IP";
+            Row { first: true; label: @tr("Configuración"); value: NetworkState.config; }
+            Row { label: @tr("Dirección IPv4"); value: NetworkState.ipv4; }
+            Row { label: @tr("Router"); value: NetworkState.gateway; }
+            if NetworkState.ipv6 != "": Row { label: @tr("Dirección IPv6"); value: NetworkState.ipv6; }
+        }
+        Section {
+            title: @tr("Servidores DNS");
+            footer: @tr("En uso: {}", NetworkState.dns-in-use);
+            for preset[i] in NetworkState.presets: Row {
+                first: i == 0;
+                label: preset.name;
+                sub: preset.note;
+                value: preset.server;
+                clickable: true;
+                chevron: false;
+                highlighted: Nav.highlight == "dns" && i == 0;
+                radio: preset.busy ? 2 : preset.active ? 1 : 0;
+                clicked => { NetworkState.set-dns(i); }
+            }
+        }
+        if !App.admin: AdminNotice {
+            text: @tr("Cambiar los servidores DNS requiere permisos de administrador.");
+        }
+    }
+}
+
+export component NetworkPane {
+    VerticalLayout {
+        if Nav.sub == "": AdapterList { }
+        if Nav.sub != "" && NetworkState.detail-loaded: AdapterDetail { }
+    }
+}

@@ -1,0 +1,74 @@
+// Botoncito de información: el subícono gris y discreto típico ("ⓘ"), que al
+// clic hace lo que corresponda (p. ej. mostrar detalles) y que, si el mouse se
+// queda encima un momento, muestra una descripción corta en un globo.
+
+import { Theme } from "../theme.slint";
+
+export component InfoButton {
+    in property <string> tooltip: @tr("Ver más información.");
+    // Ya está abierto/activo (p. ej. el detalle ya se está mostrando): queda resaltado.
+    in property <bool> active: false;
+    callback clicked();
+
+    width: 20px;
+    height: 20px;
+    accessible-role: button;
+    accessible-label: root.tooltip;
+    accessible-action-default => { root.clicked(); }
+
+    Image {
+        source: @image-url("../icons/info.svg");
+        width: 14px;
+        height: 14px;
+        colorize: root.active ? Theme.accent : (touch.has-hover ? Theme.label2 : Theme.label3);
+        animate colorize { duration: Theme.quick; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    // Aparece solo si el mouse se queda quieto encima un momento (no en el
+    // primer roce) y se cierra apenas el mouse se va.
+    hover-delay := Timer {
+        interval: 550ms;
+        running: touch.has-hover && !tip.is-open;
+        triggered => { tip.show(); }
+    }
+    watch-leave := Timer {
+        interval: 150ms;
+        running: tip.is-open;
+        triggered => {
+            if !touch.has-hover {
+                tip.close();
+            }
+        }
+    }
+
+    tip := PopupWindow {
+        x: -90px;
+        y: 26px;
+        width: 190px;
+        height: label.preferred-height + 16px;
+        close-policy: no-auto-close;
+
+        Rectangle {
+            border-radius: 8px;
+            background: Theme.dark ? #3a3a3ef5 : #fafafcf5;
+            border-width: 1px;
+            border-color: Theme.group-border;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: Theme.shadow;
+            drop-shadow-offset-y: 4px;
+        }
+        label := Text {
+            x: 9px;
+            y: 8px;
+            width: parent.width - 18px;
+            text: root.tooltip;
+            font-size: 11px;
+            color: Theme.label;
+            wrap: word-wrap;
+        }
+    }
+}

@@ -1,0 +1,40 @@
+[package]
+name = "liquidcontrol"
+description = "LiquidControl: panel de configuración para Windows con estética macOS."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "liquidcontrol"
+path = "src/main.rs"
+
+[dependencies]
+liquidcontrol-core.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Código QR para abrir AirDrop desde el celular (sin imágenes ni SVG: solo la matriz).
+qrcode = { version = "0.14", default-features = false }
+# Skia por GPU (Direct3D) como motor principal y el renderizador por software de
+# respaldo: ~50 MB de RAM en total, sin WebView ni procesos extra.
+slint = { version = "1.17", default-features = false, features = [
+  "std",
+  "compat-1-2",
+  "backend-winit",
+  "renderer-skia",
+  "renderer-software",
+  "accessibility",
+  "unstable-winit-030",
+] }
+
+[build-dependencies]
+slint-build = "1.17"
+# Ícono, versión y manifiesto dentro del .exe.
+winresource = "0.1"
+
+[lints]
+workspace = true

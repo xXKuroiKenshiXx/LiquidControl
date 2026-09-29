@@ -1,0 +1,129 @@
+// Contrato entre la interfaz y Rust: navegación, estado de la app, búsqueda,
+// avisos y diálogos. Rust implementa los callbacks y actualiza las propiedades.
+
+import { Tint, Tints } from "theme.slint";
+
+export struct PaneInfo {
+    id: string,
+    title: string,
+    icon: image,
+    tint: Tint,
+}
+
+export struct SearchResult {
+    pane: string,
+    item: string,
+    title: string,
+    context: string,
+    icon: image,
+    tint: Tint,
+}
+
+export global Nav {
+    in-out property <string> pane: "general";
+    in-out property <string> sub: "";
+    in property <string> title;
+    in property <bool> can-back;
+    in property <bool> can-forward;
+    in property <string> highlight;
+    callback open(string, string, string);
+    callback back();
+    callback forward();
+}
+
+export global App {
+    in property <bool> admin;
+    in property <string> version;
+    in property <string> user-name;
+    in property <string> account-kind;
+    in property <image> avatar;
+    in property <bool> has-avatar;
+    in property <string> initials;
+    in property <bool> mac-controls: true;
+    in property <bool> maximized;
+    in property <bool> window-active: true;
+    // Esquinas estilo macOS activas (la ventana está recortada con una región).
+    in property <bool> mac-corners;
+    in property <[SearchResult]> search-results;
+    callback search-changed(string);
+    callback relaunch-admin();
+    callback open-uri(string);
+    callback restart-explorer();
+    callback window-drag();
+    callback window-minimize();
+    callback window-maximize();
+    callback window-close();
+}
+
+export struct ToastView {
+    id: int,
+    message: string,
+    // 0 = info, 1 = éxito, 2 = error
+    kind: int,
+    action: string,
+}
+
+export global Toasts {
+    in property <[ToastView]> items;
+    callback action(int);
+}
+
+// Diálogo modal genérico (confirmaciones y pedido de contraseña).
+export global Dialog {
+    in-out property <bool> open;
+    in property <string> tag;
+    in property <string> title;
+    in property <string> message;
+    in property <bool> has-input;
+    in property <bool> secret: true;
+    in-out property <string> input;
+    in property <string> placeholder;
+    in property <int> min-input: 0;
+    in property <string> confirm-text: @tr("Aceptar");
+    in property <string> cancel-text: @tr("Cancelar");
+    in property <bool> destructive;
+    in property <bool> busy;
+    in property <string> error;
+    callback confirmed(string, string);
+    callback cancelled(string);
+}
+
+// Paneles de la barra lateral, por grupos (como Ajustes del Sistema).
+export global Registry {
+    out property <PaneInfo> account: { id: "account", title: @tr("Cuenta de Windows"), icon: @image-url("icons/user-round.svg"), tint: Tints.gray };
+    out property <[PaneInfo]> group1: [
+        { id: "wifi", title: @tr("Wi‑Fi"), icon: @image-url("icons/wifi.svg"), tint: Tints.blue },
+        { id: "airdrop", title: @tr("AirDrop"), icon: @image-url("icons/radio.svg"), tint: Tints.blue },
+        { id: "bluetooth", title: @tr("Bluetooth"), icon: @image-url("icons/bluetooth.svg"), tint: Tints.blue },
+        { id: "network", title: @tr("Red"), icon: @image-url("icons/globe.svg"), tint: Tints.blue },
+    ];
+    out property <[PaneInfo]> group2: [
+        { id: "notifications", title: @tr("Notificaciones"), icon: @image-url("icons/bell.svg"), tint: Tints.red },
+        { id: "sound", title: @tr("Sonido"), icon: @image-url("icons/volume-2.svg"), tint: Tints.pink },
+    ];
+    out property <[PaneInfo]> group3: [
+        { id: "general", title: @tr("General"), icon: @image-url("icons/settings.svg"), tint: Tints.gray },
+        { id: "appearance", title: @tr("Apariencia"), icon: @image-url("icons/contrast.svg"), tint: Tints.black },
+        { id: "wallpaper", title: @tr("Fondo de pantalla"), icon: @image-url("icons/image.svg"), tint: Tints.cyan },
+        { id: "accessibility", title: @tr("Accesibilidad"), icon: @image-url("icons/person-standing.svg"), tint: Tints.blue },
+        { id: "desktop", title: @tr("Escritorio y barra de tareas"), icon: @image-url("icons/panel-bottom.svg"), tint: Tints.black },
+    ];
+    out property <[PaneInfo]> group4: [
+        { id: "displays", title: @tr("Pantallas"), icon: @image-url("icons/monitor.svg"), tint: Tints.blue },
+        { id: "energy", title: @tr("Energía"), icon: @image-url("icons/battery-charging.svg"), tint: Tints.green },
+    ];
+    out property <[PaneInfo]> group5: [
+        { id: "security", title: @tr("Antivirus"), icon: @image-url("icons/shield.svg"), tint: Tints.green },
+        { id: "privacy", title: @tr("Privacidad y seguridad"), icon: @image-url("icons/hand.svg"), tint: Tints.blue },
+        { id: "optimize", title: @tr("Optimización"), icon: @image-url("icons/gauge.svg"), tint: Tints.orange },
+        { id: "gaming", title: @tr("Juegos"), icon: @image-url("icons/gamepad-2.svg"), tint: Tints.green },
+        { id: "apps", title: @tr("Aplicaciones"), icon: @image-url("icons/layout-grid.svg"), tint: Tints.indigo },
+    ];
+    out property <[PaneInfo]> group6: [
+        { id: "mouse", title: @tr("Mouse"), icon: @image-url("icons/mouse.svg"), tint: Tints.gray },
+        { id: "keyboard", title: @tr("Teclado"), icon: @image-url("icons/keyboard.svg"), tint: Tints.gray },
+    ];
+    out property <[PaneInfo]> group7: [
+        { id: "app", title: @tr("Ajustes de la app"), icon: @image-url("icons/sparkles.svg"), tint: Tints.purple },
+    ];
+}

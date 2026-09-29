@@ -1,0 +1,431 @@
+// iCloud (subpágina de Cuenta): iCloud Drive, Fotos, Contraseñas y la cuenta de
+// Apple. LiquidControl nunca maneja credenciales de Apple: todo pasa por la app oficial.
+
+import { Theme, Tints } from "../theme.slint";
+import { App, Nav } from "../globals.slint";
+import { Button, CompactHeader, PaneHeader, Row, Section } from "../widgets/basics.slint";
+import { SearchField } from "../widgets/controls.slint";
+
+export struct PhotoView {
+    image: image,
+    loaded: bool,
+    name: string,
+    path: string,
+    // Solo está en la nube (sin permiso no se descarga para la miniatura).
+    cloud-only: bool,
+}
+
+export global ICloudState {
+    in property <bool> loaded;
+    in property <bool> installed;
+    // "" = iCloud Drive no está activado
+    in property <string> drive-folder;
+    in property <bool> has-photos-folder;
+    in property <[PhotoView]> photos;
+    // Búsqueda de fotos: por nombre, por fecha o por cómo se ven.
+    in property <[PhotoView]> found;
+    in property <bool> searching;
+    in property <string> search-note;
+    callback search-photos(string);
+    // Fotos recientes que están solo en la nube.
+    in property <int> cloud-only-count;
+    // El usuario permitió descargarlas para ver su miniatura.
+    in property <bool> download-thumbnails;
+    // Hay fotos HEIC (del iPhone): necesitan el códec gratuito de Microsoft.
+    in property <bool> has-heic;
+    // Todas las fotos (subpágina "Ver todas"), hasta el tope de seguridad.
+    in property <[PhotoView]> all-photos;
+    in property <bool> loading-all-photos;
+    // Total real encontrado, aunque `all-photos` esté recortada.
+    in property <int> all-photos-total;
+    // "drive", "photos", "app", "store", "web" o "passwords"
+    callback open(string);
+    callback set-download-thumbnails(bool);
+    // Acciones sobre una foto puntual, por su ruta.
+    callback open-photo(string);
+    callback download-photo(string);
+    callback delete-photo(string);
+}
+
+// Grilla de fotos cuadradas (mínimo 92 px).
+// Nota de la búsqueda de fotos: mismo patrón que SectionFooter (componente
+// propio con raíz VerticalLayout), la única forma con la que el alto de un
+// texto con salto de línea se calculó bien en el medio de una sección.
+component SearchNote inherits VerticalLayout {
+    in property <string> note;
+    if root.note != "": VerticalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 8px;
+        padding-bottom: 4px;
+        Text {
+            text: root.note;
+            font-size: 11px;
+            color: Theme.label2;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// El contenido de una foto (miniatura, ícono de nube, nombre): se usa tanto
+// para la miniatura de siempre como para la copia agrandada que flota encima
+// al pasar el mouse.
+component PhotoTile inherits Rectangle {
+    in property <PhotoView> photo;
+    border-radius: 8px;
+    clip: true;
+    background: Theme.field;
+    if root.photo.loaded: Image {
+        width: 100%;
+        height: 100%;
+        source: root.photo.image;
+        image-fit: cover;
+    }
+    if !root.photo.loaded && root.photo.cloud-only: Image {
+        source: @image-url("../icons/cloud.svg");
+        width: 18px;
+        height: 18px;
+        colorize: Theme.label3;
+    }
+    if root.photo.name != "": Rectangle {
+        y: parent.height - self.height;
+        height: 20px;
+        background: @linear-gradient(180deg, #00000000 0%, #00000099 100%);
+        Text {
+            x: 5px;
+            width: parent.width - 10px;
+            text: root.photo.name;
+            font-size: 9px;
+            color: #ffffff;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Botón de texto del menú contextual (clic derecho sobre una foto).
+component MenuAction inherits Rectangle {
+    in property <string> text;
+    in property <bool> destructive: false;
+    callback clicked();
+    height: 30px;
+    background: touch.has-hover ? Theme.hover : transparent;
+    border-radius: 6px;
+    Text {
+        x: 10px;
+        text: root.text;
+        font-size: 12px;
+        color: root.destructive ? Theme.danger : Theme.label;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component PhotoGrid {
+    in property <[PhotoView]> photos;
+    // Foto agrandada al pasar el mouse (-1 = ninguna). Solo una copia extra
+    // se dibuja arriba de todo, así nunca queda tapada por la fila de abajo.
+    property <int> hovered: -1;
+    property <float> tilt-x: 0.5;
+    // Foto con el menú de clic derecho abierto (-1 = cerrado).
+    property <int> menu-index: -1;
+    property <length> gap: 6px;
+    property <int> columns: max(1, Math.floor((self.width - self.gap) / (92px + self.gap)));
+    property <length> cell: (self.width - self.gap * (self.columns + 1)) / self.columns;
+    property <int> rows: Math.ceil(self.photos.length / self.columns);
+    function tile-x(i: int) -> length { root.gap + Math.mod(i, root.columns) * (root.cell + root.gap) }
+    function tile-y(i: int) -> length { root.gap + Math.floor(i / root.columns) * (root.cell + root.gap) }
+
+    min-height: self.rows * (self.cell + self.gap) + self.gap;
+
+    for photo[i] in root.photos: PhotoTile {
+        x: root.tile-x(i);
+        y: root.tile-y(i);
+        width: root.cell;
+        height: root.cell;
+        // La que está agrandada se vuelve invisible acá: su copia grande
+        // (dibujada después del for, por eso siempre arriba) la reemplaza.
+        opacity: root.hovered == i ? 0 : 1;
+        photo: photo;
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { ICloudState.open-photo(photo.path); }
+            moved => {
+                if root.hovered == i {
+                    root.tilt-x = clamp(self.mouse-x / max(self.width, 1px), 0, 1);
+                }
+            }
+            pointer-event(event) => {
+                if event.kind == PointerEventKind.down && event.button == PointerEventButton.right {
+                    root.menu-index = i;
+                }
+            }
+            changed has-hover => {
+                if self.has-hover {
+                    root.hovered = i;
+                } else if root.hovered == i {
+                    root.hovered = -1;
+                }
+            }
+        }
+    }
+
+    // Copia agrandada de la foto sobre la que está el mouse: como se dibuja
+    // después de todo el `for`, queda arriba aunque tape a las de al lado.
+    if root.hovered >= 0 && root.hovered < root.photos.length: PhotoTile {
+        property <length> tx: root.tile-x(root.hovered);
+        property <length> ty: root.tile-y(root.hovered);
+        x: tx - (self.width - root.cell) / 2;
+        y: ty - (self.height - root.cell) / 2;
+        width: root.cell * 1.28;
+        height: root.cell * 1.28;
+        photo: root.photos[root.hovered];
+        border-width: 2px;
+        border-color: Theme.dark ? #ffffff26 : #ffffff;
+        drop-shadow-blur: 22px;
+        drop-shadow-offset-y: 10px;
+        drop-shadow-color: Theme.shadow;
+        // Se balancea según de qué lado está el mouse: como una carta que se
+        // inclina para el costado al que la movés.
+        transform-rotation: (root.tilt-x - 0.5) * 10deg;
+        animate width, height, x, y, transform-rotation { duration: Theme.smooth; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        // El clic y el clic derecho los sigue manejando la miniatura de
+        // abajo (misma posición geométrica); esta copia es solo visual.
+    }
+
+    // Clic afuera del menú: lo cierra. Cubre toda la grilla, pero al estar
+    // debajo de los `touch` de cada foto, esos clics normales no se pierden.
+    if root.menu-index >= 0: TouchArea {
+        width: root.width;
+        height: root.height;
+        clicked => { root.menu-index = -1; }
+    }
+    if root.menu-index >= 0 && root.menu-index < root.photos.length: Rectangle {
+        property <length> tx: root.tile-x(root.menu-index);
+        property <length> ty: root.tile-y(root.menu-index);
+        x: min(tx, root.width - self.width);
+        y: min(ty + root.cell + 4px, root.height - self.height);
+        width: 148px;
+        height: 68px;
+        background: @linear-gradient(180deg, Theme.glass-top 0%, Theme.glass-bottom 100%);
+        border-radius: 10px;
+        border-width: 1px;
+        border-color: Theme.glass-rim.with-alpha(Theme.dark ? 0.35 : 0.9);
+        drop-shadow-blur: 16px;
+        drop-shadow-offset-y: 4px;
+        drop-shadow-color: Theme.shadow;
+        VerticalLayout {
+            padding: 4px;
+            MenuAction {
+                text: @tr("Descargar");
+                clicked => {
+                    ICloudState.download-photo(root.photos[root.menu-index].path);
+                    root.menu-index = -1;
+                }
+            }
+            MenuAction {
+                text: @tr("Eliminar");
+                destructive: true;
+                clicked => {
+                    ICloudState.delete-photo(root.photos[root.menu-index].path);
+                    root.menu-index = -1;
+                }
+            }
+        }
+    }
+}
+
+export component ICloudPage {
+    VerticalLayout {
+        spacing: 22px;
+        CompactHeader {
+            icon: @image-url("../icons/cloud.svg");
+            tint: Tints.cyan;
+            title: "iCloud";
+            description: !ICloudState.loaded ? ""
+                : ICloudState.installed ? @tr("iCloud para Windows está instalado en esta PC.")
+                : @tr("Conectá tu cuenta de Apple con iCloud para Windows.");
+            if ICloudState.installed: VerticalLayout {
+                alignment: center;
+                Button {
+                    text: @tr("Abrir iCloud");
+                    small: true;
+                    clicked => { ICloudState.open("app"); }
+                }
+            }
+        }
+        if ICloudState.loaded && !ICloudState.installed: Section {
+            footer: @tr("Si no usás iPhone ni tenés cuenta de Apple, podés ignorar esta sección: no se instala nada solo y el resto de LiquidControl funciona igual.");
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/cloud-download.svg");
+                tint: Tints.blue;
+                label: @tr("Instalar iCloud para Windows");
+                sub: @tr("Gratis en la Microsoft Store. Sincroniza iCloud Drive, Fotos, Contraseñas y Calendarios.");
+                button: @tr("Obtener");
+                button-primary: true;
+                button-clicked => { ICloudState.open("store"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/globe.svg");
+                tint: Tints.gray;
+                label: "iCloud.com";
+                sub: @tr("Accedé desde el navegador sin instalar nada.");
+                clickable: true;
+                external: true;
+                clicked => { ICloudState.open("web"); }
+            }
+        }
+        if ICloudState.installed: Section {
+            title: "iCloud Drive";
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/folder-open.svg");
+                tint: Tints.blue;
+                label: @tr("Abrir iCloud Drive");
+                sub: ICloudState.drive-folder != "" ? ICloudState.drive-folder : @tr("La carpeta aparece cuando activás iCloud Drive en la app de iCloud.");
+                clickable: true;
+                external: true;
+                enabled: ICloudState.drive-folder != "";
+                clicked => { ICloudState.open("drive"); }
+            }
+        }
+        if ICloudState.installed: Section {
+            title: @tr("Fotos de iCloud");
+            action: ICloudState.has-photos-folder ? @tr("Ver todas") : "";
+            action-clicked => { Nav.open("account", "icloud-photos", ""); }
+            if ICloudState.has-photos-folder: VerticalLayout {
+                padding: 12px;
+                padding-bottom: 0px;
+                SearchField {
+                    placeholder: @tr("Buscar: nombre, «azules», «oscuras», «verticales», «enero 2024»…");
+                    edited(text) => { ICloudState.search-photos(text); }
+                }
+            }
+            SearchNote { note: ICloudState.search-note; }
+            if ICloudState.found.length > 0: PhotoGrid { photos: ICloudState.found; }
+            if ICloudState.search-note == "" && ICloudState.photos.length > 0: PhotoGrid { photos: ICloudState.photos; }
+            if ICloudState.photos.length == 0: Row {
+                first: true;
+                label: ICloudState.has-photos-folder ? @tr("Todavía no hay fotos sincronizadas.") : @tr("Activá Fotos en la app de iCloud para verlas acá.");
+            }
+            if ICloudState.cloud-only-count > 0 || ICloudState.download-thumbnails: Row {
+                label: @tr("Mostrar las fotos que están solo en iCloud");
+                sub: ICloudState.download-thumbnails
+                    ? @tr("iCloud descarga las fotos recientes a tu PC para mostrar su miniatura.")
+                    : @tr("{} fotos recientes no están descargadas. Para ver su miniatura, iCloud tiene que descargarlas a tu PC.", ICloudState.cloud-only-count);
+                toggle: true;
+                checked: ICloudState.download-thumbnails;
+                toggled(value) => { ICloudState.set-download-thumbnails(value); }
+            }
+            if ICloudState.has-heic: Row {
+                has-icon: true;
+                icon: @image-url("../icons/image.svg");
+                tint: Tints.purple;
+                label: @tr("Extensiones de imagen HEIF");
+                sub: @tr("Las fotos del iPhone (HEIC) necesitan este complemento gratuito de Microsoft para verse.");
+                button: @tr("Obtener");
+                button-clicked => { App.open-uri("ms-windows-store://pdp/?productid=9PMMSR1CGPWG"); }
+            }
+        }
+        if ICloudState.installed: Section {
+            Row {
+                first: true;
+                has-icon: true;
+                icon: @image-url("../icons/key-round.svg");
+                tint: Tints.gray;
+                label: @tr("Contraseñas de iCloud");
+                sub: @tr("Usá tus contraseñas y códigos de verificación de Apple en Windows.");
+                clickable: true;
+                external: true;
+                clicked => { ICloudState.open("passwords"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/globe.svg");
+                tint: Tints.gray;
+                label: "iCloud.com";
+                clickable: true;
+                external: true;
+                clicked => { ICloudState.open("web"); }
+            }
+            Row {
+                has-icon: true;
+                icon: @image-url("../icons/user-round.svg");
+                tint: Tints.gray;
+                label: @tr("Administrar la cuenta de Apple");
+                clickable: true;
+                external: true;
+                clicked => { App.open-uri("https://account.apple.com"); }
+            }
+        }
+        HorizontalLayout {
+            padding-left: 10px;
+            padding-right: 10px;
+            spacing: 6px;
+            VerticalLayout {
+                alignment: center;
+                Image {
+                    source: @image-url("../icons/shield-check.svg");
+                    width: 13px;
+                    height: 13px;
+                    colorize: Theme.label2;
+                }
+            }
+            Text {
+                text: @tr("LiquidControl nunca pide ni guarda tu contraseña de Apple: el inicio de sesión ocurre en la app oficial de Apple.");
+                font-size: 11px;
+                color: Theme.label2;
+                wrap: word-wrap;
+                horizontal-stretch: 1;
+            }
+        }
+    }
+}
+
+export component PhotosAllPage {
+    VerticalLayout {
+        spacing: 22px;
+        PaneHeader {
+            icon: @image-url("../icons/cloud.svg");
+            tint: Tints.cyan;
+            title: @tr("Fotos de iCloud");
+            description: @tr("Mirá tus fotos, buscalas por nombre, fecha o cómo se ven, y abrilas, descargalas o eliminalas con un clic derecho.");
+        }
+        Section {
+            VerticalLayout {
+                padding: 12px;
+                SearchField {
+                    placeholder: @tr("Buscar: nombre, «azules», «oscuras», «verticales», «enero 2024»…");
+                    edited(text) => { ICloudState.search-photos(text); }
+                }
+            }
+            SearchNote { note: ICloudState.search-note; }
+        }
+        if ICloudState.found.length > 0: Section {
+            PhotoGrid { photos: ICloudState.found; }
+        }
+        if ICloudState.search-note == "": Section {
+            footer: ICloudState.all-photos.length < ICloudState.all-photos-total
+                ? @tr("Se muestran las {} fotos más nuevas de {} en total. Abrí la carpeta para ver el resto.", ICloudState.all-photos.length, ICloudState.all-photos-total)
+                : "";
+            action: @tr("Abrir carpeta");
+            action-clicked => { ICloudState.open("photos"); }
+            PhotoGrid { photos: ICloudState.all-photos; }
+            if ICloudState.loading-all-photos && ICloudState.all-photos.length == 0: Row {
+                first: true;
+                label: @tr("Cargando…");
+            }
+            if !ICloudState.loading-all-photos && ICloudState.all-photos.length == 0: Row {
+                first: true;
+                label: @tr("Todavía no hay fotos sincronizadas.");
+            }
+        }
+    }
+}

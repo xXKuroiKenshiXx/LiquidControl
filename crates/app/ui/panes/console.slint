@@ -1,0 +1,140 @@
+// Consola de actividad: cada acción que LiquidControl hace en el sistema, en vivo.
+// Nada corre en ventanas de consola aparte: todo pasa por acá.
+
+import { ListView } from "std-widgets.slint";
+import { Theme, Tints } from "../theme.slint";
+import { Button, CompactHeader, Row, Section } from "../widgets/basics.slint";
+import { Segmented } from "../widgets/controls.slint";
+
+export struct LogEntryView {
+    time: string,
+    // 0 = info, 1 = éxito, 2 = aviso, 3 = error
+    level: int,
+    area: string,
+    message: string,
+}
+
+export global ConsoleState {
+    // De la más nueva a la más vieja.
+    in property <[LogEntryView]> entries;
+    in property <string> file;
+    // 0 = todo, 1 = solo avisos y errores
+    in property <int> filter;
+    callback set-filter(int);
+    callback copy();
+    callback clear();
+    callback open-folder();
+}
+
+component EntryRow inherits Rectangle {
+    in property <LogEntryView> entry;
+    min-height: 26px;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        spacing: 10px;
+        Text {
+            text: root.entry.time;
+            font-family: "Consolas";
+            font-size: 11.5px;
+            color: Theme.label3;
+            vertical-alignment: top;
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-top: 4px;
+            Rectangle {
+                width: 7px;
+                height: 7px;
+                border-radius: 3.5px;
+                background: root.entry.level == 3 ? Theme.danger
+                    : root.entry.level == 2 ? Theme.warning
+                    : root.entry.level == 1 ? Theme.success
+                    : Theme.label3;
+            }
+        }
+        Text {
+            width: 88px;
+            text: root.entry.area;
+            font-family: "Consolas";
+            font-size: 11.5px;
+            color: Theme.accent;
+            overflow: elide;
+            vertical-alignment: top;
+        }
+        Text {
+            text: root.entry.message;
+            font-family: "Consolas";
+            font-size: 11.5px;
+            color: root.entry.level == 3 ? Theme.danger : Theme.label;
+            wrap: word-wrap;
+            horizontal-stretch: 1;
+            vertical-alignment: top;
+        }
+    }
+}
+
+export component ConsolePane {
+    VerticalLayout {
+        spacing: 16px;
+        CompactHeader {
+            icon: @image-url("../icons/terminal.svg");
+            tint: Tints.graphite;
+            title: @tr("Consola de actividad");
+            description: @tr("Cada acción que LiquidControl hace en el sistema: qué cambió, cómo y si funcionó.");
+            VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Button {
+                        text: @tr("Copiar");
+                        small: true;
+                        clicked => { ConsoleState.copy(); }
+                    }
+                    Button {
+                        text: @tr("Limpiar");
+                        small: true;
+                        clicked => { ConsoleState.clear(); }
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            Segmented {
+                width: 220px;
+                labels: [@tr("Todo"), @tr("Avisos y errores")];
+                selected: ConsoleState.filter;
+                activated(index) => { ConsoleState.set-filter(index); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+        }
+        Rectangle {
+            height: 440px;
+            border-radius: Theme.radius-group;
+            background: Theme.dark ? #161618 : #fbfbfd;
+            border-width: 1px;
+            border-color: Theme.group-border;
+            clip: true;
+            ListView {
+                for entry in ConsoleState.entries: EntryRow { entry: entry; }
+            }
+            if ConsoleState.entries.length == 0: Text {
+                text: @tr("Todavía no hay actividad.");
+                color: Theme.label2;
+            }
+        }
+        Section {
+            footer: @tr("Los procesos del sistema se ejecutan ocultos y su resultado queda anotado acá. Las contraseñas nunca se registran.");
+            Row {
+                first: true;
+                label: @tr("Archivo de registro");
+                sub: ConsoleState.file;
+                clickable: true;
+                external: true;
+                clicked => { ConsoleState.open-folder(); }
+            }
+        }
+    }
+}

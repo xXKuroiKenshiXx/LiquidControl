@@ -1,0 +1,127 @@
+// Muestras de color en una fila de grupo (acento de Windows y acento de la app).
+// Animaciones y efectos en hijos, nunca en la raíz (ver basics.slint).
+
+import { Theme } from "../theme.slint";
+
+export component Swatch {
+    in property <color> tone;
+    in property <bool> selected;
+    in property <string> label;
+    // Se dibuja como vidrio teñido (reflejo arriba, sombra al pie) en vez de
+    // un color plano: es la muestra del acento "Vidrio líquido".
+    in property <bool> glass: false;
+    callback clicked();
+
+    width: 20px;
+    height: 20px;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-checked: root.selected;
+    accessible-action-default => { root.clicked(); }
+
+    Rectangle {
+        border-radius: 10px;
+        background: !root.glass ? root.tone : @linear-gradient(180deg,
+            root.tone.mix(#ffffff, Theme.dark ? 0.32 : 0.55) 0%,
+            root.tone 52%,
+            root.tone.mix(#000000, Theme.dark ? 0.35 : 0.12) 100%);
+        border-width: 0.5px;
+        border-color: #00000033;
+        transform-scale-x: touch.pressed ? 0.82 : touch.has-hover ? 1.15 : 1;
+        transform-scale-y: touch.pressed ? 0.82 : touch.has-hover ? 1.15 : 1;
+        animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        if root.selected: Rectangle {
+            x: -3.5px;
+            y: -3.5px;
+            width: 27px;
+            height: 27px;
+            border-radius: 13.5px;
+            border-width: 1.5px;
+            border-color: root.tone;
+        }
+        if root.selected: Rectangle {
+            width: 7px;
+            height: 7px;
+            border-radius: 3.5px;
+            background: #ffffff;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Fila con título, subtítulo y muestras de color a la derecha.
+export component SwatchRow inherits Rectangle {
+    in property <string> label;
+    in property <string> sub;
+    in property <bool> first: false;
+    in property <bool> highlighted: false;
+    in property <bool> enabled: true;
+    in property <[color]> colors;
+    in property <[string]> labels;
+    // -1 = ninguna elegida
+    in property <int> selected: -1;
+    // Índice que se dibuja como vidrio en vez de color plano (-1 = ninguno).
+    in property <int> glass-index: -1;
+    callback activated(int);
+
+    min-height: root.sub != "" ? 50px : 40px;
+    accessible-role: list-item;
+    accessible-label: root.label;
+
+    Rectangle {
+        background: root.highlighted ? Theme.accent.with-alpha(0.18) : transparent;
+        animate background { duration: Theme.quick; }
+    }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 12px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.label;
+                color: root.enabled ? Theme.label : Theme.label3;
+                font-size: 13px;
+                overflow: elide;
+            }
+            if root.sub != "": Text {
+                text: root.sub;
+                color: Theme.label2;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+        }
+        HorizontalLayout {
+            spacing: 9px;
+            alignment: end;
+            for tone[i] in root.colors: VerticalLayout {
+                alignment: center;
+                Swatch {
+                    tone: tone;
+                    selected: i == root.selected;
+                    glass: i == root.glass-index;
+                    label: i < root.labels.length ? root.labels[i] : "";
+                    clicked => {
+                        if root.enabled {
+                            root.activated(i);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if !root.first: Rectangle {
+        x: 10px;
+        y: 0px;
+        width: parent.width - 20px;
+        height: 1px;
+        background: Theme.separator;
+    }
+}
