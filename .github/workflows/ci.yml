@@ -14,7 +14,7 @@ jobs:
     name: Formato, lint y pruebas
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release -p liquidcontrol
@@ -47,7 +47,7 @@ jobs:
           Compress-Archive -Path "dist/$package/*" -DestinationPath "dist/$package.zip"
           (Get-FileHash "dist/$package.zip" -Algorithm SHA256).Hash |
             Set-Content "dist/$package.zip.sha256"
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.zip
