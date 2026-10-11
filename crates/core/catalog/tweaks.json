@@ -99,6 +99,150 @@
       ]
     },
     {
+      "id": "privacy.telemetry_channels",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Cortar los demás canales de telemetría",
+      "description": "Apaga el análisis de escritorio, el nombre de la PC dentro de los datos, las descargas de OneSettings y el programa de mejora de la experiencia (CEIP).",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowDesktopAnalyticsProcessing", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowDeviceNameInTelemetry", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "MicrosoftEdgeDataOptIn", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowWUfBCloudProcessing", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowUpdateComplianceProcessing", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowCommercialDataPipeline", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "DisableOneSettingsDownloads", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows", "name": "CEIPEnable", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.error_reporting_data",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "No mandar datos extra en los informes de errores",
+      "description": "Los informes de errores no adjuntan datos adicionales ni piden consentimiento para enviarlos, y se apaga su registro.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting\\Consent", "name": "DefaultConsent", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting\\Consent", "name": "DefaultOverrideBehavior", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting", "name": "DontSendAdditionalData", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting", "name": "LoggingDisabled", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.diag_services",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Apagar los servicios de diagnóstico y de informes de errores",
+      "description": "Pone en «Deshabilitado» el servicio de diagnóstico, el de informe de errores y su panel de soporte. Al revertir vuelven a «Manual».",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        {"service": "diagsvc", "on": "disabled", "off": "manual"},
+        {"service": "WerSvc", "on": "disabled", "off": "manual"},
+        {"service": "wercplsupport", "on": "disabled", "off": "manual"}
+      ]
+    },
+    {
+      "id": "privacy.compat_tasks",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Sin tareas de compatibilidad de aplicaciones",
+      "description": "Deshabilita las tareas de Application Experience que recopilan datos de las apps que abrís (StartupAppTask, PcaPatchDbTask, MareBackup y el Appraiser extendido).",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"task": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser Exp", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\Application Experience\\StartupAppTask", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\Application Experience\\MareBackup", "on": "disabled"}
+      ]
+    },
+    {
+      "id": "privacy.more_telemetry_tasks",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Sin más tareas de recopilación",
+      "description": "Deshabilita KernelCeipTask, Autochk\\Proxy, el recolector de diagnóstico de disco, la cola de informes de errores y la actualización de mapas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"task": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\KernelCeipTask", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\Autochk\\Proxy", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting", "on": "disabled"},
+        {"task": "\\Microsoft\\Windows\\Maps\\MapsUpdateTask", "on": "disabled"}
+      ]
+    },
+    {
+      "id": "privacy.mfu_tracking",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "No registrar las apps más usadas",
+      "description": "Windows deja de llevar la cuenta de qué apps usás más.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\EdgeUI", "name": "DisableMFUTracking", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.language_optout",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Los sitios no ven tu lista de idiomas",
+      "description": "Evita que los sitios web accedan a la lista de idiomas de Windows para personalizar el contenido.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Control Panel\\International\\User Profile", "name": "HttpAcceptLanguageOptOut", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.feedback_notifications",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Sin notificaciones de comentarios",
+      "description": "Windows no muestra avisos pidiendo que le des tu opinión.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "DoNotShowFeedbackNotifications", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection", "name": "DoNotShowFeedbackNotifications", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.drm_online",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Sin acceso a Internet para el DRM de Windows",
+      "description": "El DRM de Windows Media no consulta servidores en línea para validar licencias ni recuperar metadatos.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\WMDRM", "name": "DisableOnline", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.input_personalization",
+      "category": "privacy",
+      "section": "Telemetría y diagnóstico",
+      "title": "Sin personalización de entrada (política del equipo)",
+      "description": "Windows no aprende de lo que escribís o dibujás a mano ni comparte esos datos.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization", "name": "RestrictImplicitInkCollection", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization", "name": "RestrictImplicitTextCollection", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization", "name": "AllowInputPersonalization", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\HandwritingErrorReports", "name": "PreventHandwritingErrorReports", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\TabletPC", "name": "PreventHandwritingDataSharing", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
       "id": "privacy.advertising_id",
       "category": "privacy",
       "section": "Publicidad y sugerencias",
@@ -215,6 +359,50 @@
       ]
     },
     {
+      "id": "privacy.content_delivery",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Cortar el contenido promocionado de raíz",
+      "description": "Apaga la entrega de contenido, las apps sugeridas y la administración de funciones del Content Delivery Manager.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "ContentDeliveryAllowed", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContentEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "PreInstalledAppsEverEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "FeatureManagementEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-353698Enabled", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
+      "id": "privacy.ads_policies",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Bloquear la publicidad personalizada por política",
+      "description": "Además del interruptor del usuario, fija las políticas que impiden el ID de publicidad y las experiencias personalizadas con datos de diagnóstico.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo", "name": "DisabledByGroupPolicy", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo", "name": "DisabledByGroupPolicy", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "name": "DisableTailoredExperiencesWithDiagnosticData", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent", "name": "TailoredExperiencesWithDiagnosticDataEnabled", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.spotlight_policy",
+      "category": "privacy",
+      "section": "Publicidad y sugerencias",
+      "title": "Desactivar Windows Spotlight",
+      "description": "Apaga las funciones de Spotlight (imágenes y sugerencias) y el «soft landing» de consejos para todos los usuarios.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "name": "DisableWindowsSpotlightFeatures", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "name": "DisableSoftLanding", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
       "id": "privacy.activity_history",
       "category": "privacy",
       "section": "Actividad e historial",
@@ -239,6 +427,52 @@
       "ops": [
         { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_TrackDocs", "type": "dword", "on": 0, "off": 1 },
         { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "Start_TrackProgs", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.maps_auto",
+      "category": "privacy",
+      "section": "Actividad e historial",
+      "title": "No descargar mapas automáticamente",
+      "description": "Windows no baja ni actualiza mapas sin que lo pidas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps", "name": "AutoDownloadAndUpdateMapData", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps", "name": "AllowUntriggeredNetworkTrafficOnSettingsPage", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.settings_sync",
+      "category": "privacy",
+      "section": "Sincronización con la nube",
+      "title": "Desactivar la sincronización de ajustes con la nube",
+      "description": "Tu cuenta Microsoft deja de sincronizar entre PCs el tema, las contraseñas, el idioma, el diseño de Inicio, el navegador y los ajustes de apps.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableSyncOnPaidNetwork", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync", "name": "SyncPolicy", "type": "dword", "on": 5, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableApplicationSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableApplicationSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableAppSyncSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableAppSyncSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableCredentialsSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableCredentialsSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableDesktopThemeSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableDesktopThemeSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisablePersonalizationSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisablePersonalizationSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableStartLayoutSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableStartLayoutSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableWebBrowserSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableWebBrowserSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableWindowsSettingSync", "type": "dword", "on": 2, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync", "name": "DisableWindowsSettingSyncUserOverride", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\\Groups\\Credentials", "name": "Enabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\\Groups\\Language", "name": "Enabled", "type": "dword", "on": 0, "off": 1}
       ]
     },
     {
@@ -342,6 +576,96 @@
       ]
     },
     {
+      "id": "privacy.perm_files",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear el acceso a documentos, imágenes y videos",
+      "description": "Las apps no pueden leer tus bibliotecas de documentos, imágenes y videos ni usar el acceso amplio al sistema de archivos.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\documentsLibrary", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\picturesLibrary", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\videosLibrary", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\broadFileSystemAccess", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"}
+      ]
+    },
+    {
+      "id": "privacy.perm_radios_motion",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear el control de radios y el movimiento",
+      "description": "Las apps no pueden encender o apagar radios (Wi‑Fi, Bluetooth) ni leer el sensor de movimiento.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\radios", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\activity", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"}
+      ]
+    },
+    {
+      "id": "privacy.perm_capture",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear las capturas sin borde y la grabación programática",
+      "description": "Las apps no pueden capturar la pantalla sin el borde amarillo ni grabarla sin que lo notes.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\graphicsCaptureWithoutBorder", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\graphicsCaptureProgrammatic", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"}
+      ]
+    },
+    {
+      "id": "privacy.perm_ai_models",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear los modelos de IA del sistema",
+      "description": "Las apps no pueden usar los modelos de IA generativa que trae Windows.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\systemAIModels", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"}
+      ]
+    },
+    {
+      "id": "privacy.perm_phone",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear el acceso a las llamadas telefónicas",
+      "description": "Las apps no pueden usar las llamadas del teléfono vinculado (política del sistema).",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy", "name": "LetAppsAccessPhone", "type": "dword", "on": 2, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.perm_trusted_devices",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Bloquear los dispositivos de confianza",
+      "description": "Las apps no pueden comunicarse con dispositivos de confianza emparejados.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\Global\\{C1D23ACC-752B-43E5-8448-8D0E519CD6D6}", "name": "Value", "type": "sz", "on": "Deny", "off": "Allow"}
+      ]
+    },
+    {
+      "id": "privacy.online_speech",
+      "category": "privacy",
+      "section": "Permisos de apps",
+      "title": "Sin voz en la nube ni activación por voz",
+      "description": "Apaga el reconocimiento de voz en línea y que las apps se activen con la voz.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy", "name": "HasAccepted", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Microsoft\\Speech_OneCore\\Settings\\VoiceActivation\\UserPreferenceForAllApps", "name": "AgentActivationEnabled", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
       "id": "privacy.bing_search",
       "category": "privacy",
       "section": "Búsqueda",
@@ -389,6 +713,67 @@
       "restart": "none",
       "ops": [
         { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings", "name": "IsDeviceSearchHistoryEnabled", "type": "dword", "on": 0, "off": 1 }
+      ]
+    },
+    {
+      "id": "privacy.search_web_policy",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "Búsqueda sin web ni nube (política)",
+      "description": "Bloquea por política la búsqueda web, la nube y las consultas remotas desde la búsqueda de Windows.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "ConnectedSearchUseWeb", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "ConnectedSearchUseWebOverMeteredConnections", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "DisableWebSearch", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "ConnectedSearchPrivacy", "type": "dword", "on": 3, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "PreventRemoteQueries", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "AllowCloudSearch", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.search_location_policy",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "Búsqueda sin ubicación ni contenido dinámico",
+      "description": "La búsqueda no usa tu ubicación, no muestra contenido dinámico, no indexa elementos cifrados y no sugiere en el cuadro.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "AllowSearchToUseLocation", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "EnableDynamicContentInWSB", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "AllowIndexingEncryptedStoresOrItems", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "AlwaysUseAutoLangDetection", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer", "name": "DisableSearchBoxSuggestions", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.search_device_history",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "Búsqueda sin historial del dispositivo",
+      "description": "La búsqueda no guarda el historial de este dispositivo ni la vista de historial, y apaga el atajo de voz.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search", "name": "DeviceHistoryEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search", "name": "HistoryViewEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search", "name": "VoiceShortcut", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer", "name": "DisableSearchHistory", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.cortana",
+      "category": "privacy",
+      "section": "Búsqueda",
+      "title": "Desactivar Cortana",
+      "description": "Cortana queda apagada por política y en la configuración de búsqueda.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "AllowCortana", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search", "name": "CortanaEnabled", "type": "dword", "on": 0, "off": null}
       ]
     },
     {
@@ -442,6 +827,35 @@
       ]
     },
     {
+      "id": "privacy.copilot_full",
+      "category": "privacy",
+      "section": "IA de Windows",
+      "title": "Copilot: bloqueo completo",
+      "description": "Además de ocultar el botón, apaga la política de Copilot, su tiempo de ejecución, la apertura automática y bloquea su extensión del shell.",
+      "risk": "safe",
+      "restart": "logoff",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot", "name": "TurnOffWindowsCopilot", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings", "name": "AutoOpenCopilotLargeScreens", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsCopilot", "name": "AllowCopilotRuntime", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Shell\\Copilot", "name": "IsCopilotAvailable", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\Software\\Microsoft\\Windows\\Shell\\Copilot\\BingChat", "name": "IsUserEligible", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Blocked", "name": "{CB3B0003-8088-4EDE-8769-8B354AB2FF8C}", "type": "sz", "on": " ", "off": null}
+      ]
+    },
+    {
+      "id": "privacy.notepad_rewrite",
+      "category": "privacy",
+      "section": "IA de Windows",
+      "title": "Quitar el botón «Reescribir» del Bloc de notas",
+      "description": "Oculta el botón de reescritura con IA del Bloc de notas.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Software\\Microsoft\\Notepad", "name": "ShowRewriteButton", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
       "id": "privacy.office_telemetry",
       "category": "privacy",
       "section": "Apps de terceros",
@@ -484,6 +898,119 @@
       "ops": [
         { "reg": "HKCU\\Environment", "name": "POWERSHELL_TELEMETRY_OPTOUT", "type": "sz", "on": "1", "off": null },
         { "reg": "HKCU\\Environment", "name": "DOTNET_CLI_TELEMETRY_OPTOUT", "type": "sz", "on": "1", "off": null }
+      ]
+    },
+    {
+      "id": "privacy.office_logging",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "Office: sin registros, encuestas ni tareas de telemetría",
+      "description": "Apaga el registro de Outlook y Word, el envío de datos de uso, las encuestas y las tareas del agente de telemetría de Office.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKCU\\Software\\Microsoft\\Office",
+      "ops": [
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Outlook\\Options\\Mail", "name": "EnableLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Outlook\\Options\\Calendar", "name": "EnableCalendarLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Word\\Options", "name": "EnableLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Policies\\Microsoft\\Office\\15.0\\OSM", "name": "EnableLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Policies\\Microsoft\\Office\\15.0\\OSM", "name": "EnableUpload", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Common\\ClientTelemetry", "name": "VerboseLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Common", "name": "QMEnable", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Common\\Feedback", "name": "Enabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Outlook\\Options\\Mail", "name": "EnableLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Outlook\\Options\\Calendar", "name": "EnableCalendarLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Word\\Options", "name": "EnableLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\\ClientTelemetry", "name": "VerboseLogging", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common", "name": "QMEnable", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\\Feedback", "name": "Enabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Office\\Common\\ClientTelemetry", "name": "VerboseLogging", "type": "dword", "on": 0, "off": null},
+        {"task": "\\Microsoft\\Office\\OfficeTelemetryAgentFallBack", "on": "disabled"},
+        {"task": "\\Microsoft\\Office\\OfficeTelemetryAgentLogOn", "on": "disabled"},
+        {"task": "\\Microsoft\\Office\\OfficeTelemetryAgentFallBack2016", "on": "disabled"},
+        {"task": "\\Microsoft\\Office\\OfficeTelemetryAgentLogOn2016", "on": "disabled"},
+        {"task": "\\Microsoft\\Office\\Office 15 Subscription Heartbeat", "on": "disabled"},
+        {"task": "\\Microsoft\\Office\\Office 16 Subscription Heartbeat", "on": "disabled"}
+      ]
+    },
+    {
+      "id": "privacy.vs_telemetry",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "Visual Studio: sin telemetría ni comentarios",
+      "description": "Apaga el programa de mejora (SQM), los comentarios con capturas y el análisis remoto de IntelliCode.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKCU\\Software\\Microsoft\\VisualStudio",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\14.0\\SQM", "name": "OptIn", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\15.0\\SQM", "name": "OptIn", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\16.0\\SQM", "name": "OptIn", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\17.0\\SQM", "name": "OptIn", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\SQM", "name": "OptIn", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKCU\\Software\\Microsoft\\VisualStudio\\Telemetry", "name": "TurnOffSwitch", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback", "name": "DisableFeedbackDialog", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback", "name": "DisableEmailInput", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback", "name": "DisableScreenshotCapture", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\IntelliCode", "name": "DisableRemoteAnalysis", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\VSCommon\\16.0\\IntelliCode", "name": "DisableRemoteAnalysis", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\VSCommon\\17.0\\IntelliCode", "name": "DisableRemoteAnalysis", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.media_player_telemetry",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "Reproductor de Windows Media: sin seguimiento",
+      "description": "No cuenta el uso y no consulta metadatos de CD, DVD, música ni radios en línea.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\MediaPlayer\\Preferences", "name": "UsageTracking", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Policies\\Microsoft\\WindowsMediaPlayer", "name": "PreventCDDVDMetadataRetrieval", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\Software\\Policies\\Microsoft\\WindowsMediaPlayer", "name": "PreventMusicFileMetadataRetrieval", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKCU\\Software\\Policies\\Microsoft\\WindowsMediaPlayer", "name": "PreventRadioPresetsRetrieval", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "privacy.ccleaner_telemetry",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "CCleaner: sin monitoreo, ofertas ni telemetría",
+      "description": "Apaga el monitoreo del sistema, los datos de uso, las ofertas y los avisos de actualización de CCleaner.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKCU\\Software\\Piriform\\CCleaner",
+      "ops": [
+        {"reg": "HKCU\\Software\\Piriform\\CCleaner", "name": "Monitoring", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Piriform\\CCleaner", "name": "HelpImproveCCleaner", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Piriform\\CCleaner", "name": "SystemMonitoring", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Piriform\\CCleaner", "name": "UpdateAuto", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Piriform\\CCleaner", "name": "UpdateCheck", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\Software\\Piriform\\CCleaner", "name": "CheckTrialOffer", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\Software\\Piriform\\CCleaner", "name": "(Cfg)HealthCheck", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\Software\\Piriform\\CCleaner", "name": "(Cfg)QuickClean", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\Software\\Piriform\\CCleaner", "name": "(Cfg)QuickCleanIpm", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\Software\\Piriform\\CCleaner", "name": "(Cfg)GetIpmForTrial", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\Software\\Piriform\\CCleaner", "name": "(Cfg)SoftwareUpdater", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKLM\\Software\\Piriform\\CCleaner", "name": "(Cfg)SoftwareUpdaterIpm", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
+      "id": "privacy.nvidia_service",
+      "category": "privacy",
+      "section": "Apps de terceros",
+      "title": "NVIDIA: apagar el servicio y las tareas de telemetría",
+      "description": "Deshabilita el contenedor de telemetría de NVIDIA, el envío de datos del driver y sus tareas programadas.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\NvTelemetryContainer",
+      "ops": [
+        {"service": "NvTelemetryContainer", "on": "disabled", "off": "auto"},
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\nvlddmkm\\Global\\Startup", "name": "SendTelemetryData", "type": "dword", "on": 0, "off": null},
+        {"task": "\\NvTmMon_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}", "on": "disabled"},
+        {"task": "\\NvTmRep_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}", "on": "disabled"},
+        {"task": "\\NvTmRepOnLogon_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}", "on": "disabled"}
       ]
     },
 
@@ -569,6 +1096,32 @@
       "restart": "explorer",
       "ops": [
         { "reg": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarGlomLevel", "type": "dword", "on": 2, "off": 0 }
+      ]
+    },
+    {
+      "id": "desktop.hide_notification_center",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Ocultar el centro de notificaciones",
+      "description": "Quita el centro de notificaciones y el calendario emergente de la barra de tareas (política del usuario).",
+      "risk": "moderate",
+      "restart": "explorer",
+      "ops": [
+        {"reg": "HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer", "name": "DisableNotificationCenter", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "desktop.widgets_policy",
+      "category": "desktop",
+      "section": "Barra de tareas",
+      "title": "Bloquear Widgets y Noticias por política",
+      "description": "Apaga Widgets, las noticias e intereses y el contenido optimizado por la nube para todos los usuarios.",
+      "risk": "moderate",
+      "restart": "explorer",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\default\\NewsAndInterests\\AllowNewsAndInterests", "name": "value", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Feeds", "name": "EnableFeeds", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent", "name": "DisableCloudOptimizedContent", "type": "dword", "on": 1, "off": null}
       ]
     },
     {
@@ -717,6 +1270,18 @@
       ]
     },
     {
+      "id": "desktop.hide_home",
+      "category": "desktop",
+      "section": "Explorador de archivos",
+      "title": "Ocultar «Inicio» del panel lateral",
+      "description": "Saca la entrada «Inicio» del panel lateral del Explorador.",
+      "risk": "safe",
+      "restart": "explorer",
+      "ops": [
+        {"reg": "HKCU\\Software\\Classes\\CLSID\\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}", "name": "System.IsPinnedToNameSpaceTree", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
       "id": "desktop.snap_flyout",
       "category": "desktop",
       "section": "Ventanas y multitarea",
@@ -750,6 +1315,91 @@
       "restart": "reboot",
       "ops": [
         { "reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation", "name": "RealTimeIsUniversal", "type": "qword", "on": 1, "off": null }
+      ]
+    },
+    {
+      "id": "desktop.detailed_bsod",
+      "category": "desktop",
+      "section": "Sistema",
+      "title": "Pantalla azul con datos técnicos",
+      "description": "La pantalla azul muestra los parámetros del error además del código, útil para diagnosticar.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CrashControl", "name": "DisplayParameters", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "desktop.prevent_device_encryption",
+      "category": "desktop",
+      "section": "Sistema",
+      "title": "Impedir el cifrado automático del dispositivo",
+      "description": "Evita que Windows active solo el cifrado BitLocker de este equipo. No descifra un disco que ya esté cifrado.",
+      "risk": "moderate",
+      "restart": "reboot",
+      "ops": [
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\BitLocker", "name": "PreventDeviceEncryption", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "desktop.disable_wpbt",
+      "category": "desktop",
+      "section": "Sistema",
+      "title": "Desactivar la tabla de binarios de plataforma (WPBT)",
+      "description": "Impide que el firmware (UEFI) instale programas del fabricante al arrancar Windows.",
+      "risk": "moderate",
+      "restart": "reboot",
+      "ops": [
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager", "name": "DisableWpbtExecution", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "desktop.lockscreen_camera",
+      "category": "desktop",
+      "section": "Inicio de sesión",
+      "title": "Sin cámara en la pantalla de bloqueo",
+      "description": "Quita el acceso rápido a la cámara desde la pantalla de bloqueo.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization", "name": "NoLockScreenCamera", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "desktop.verbose_logon",
+      "category": "desktop",
+      "section": "Inicio de sesión",
+      "title": "Mensajes detallados al iniciar y apagar",
+      "description": "Windows muestra qué está haciendo al iniciar sesión, cerrar sesión y apagar.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", "name": "VerboseStatus", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "desktop.numlock_off",
+      "category": "desktop",
+      "section": "Inicio de sesión",
+      "title": "Num Lock apagado al iniciar sesión",
+      "description": "El teclado numérico arranca apagado en tu sesión.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Control Panel\\Keyboard", "name": "InitialKeyboardIndicators", "type": "sz", "on": "0", "off": "2"}
+      ]
+    },
+    {
+      "id": "desktop.disable_biometrics",
+      "category": "desktop",
+      "section": "Inicio de sesión",
+      "title": "Desactivar la biometría (rompe Windows Hello)",
+      "description": "Apaga por política el uso de huella, rostro e iris para iniciar sesión.",
+      "risk": "advanced",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Biometrics", "name": "Enabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Biometrics\\Credential Provider", "name": "Enabled", "type": "dword", "on": 0, "off": null}
       ]
     },
 
@@ -815,6 +1465,67 @@
       ]
     },
     {
+      "id": "optimize.fast_startup",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Desactivar el inicio rápido",
+      "description": "Apagar la PC la apaga de verdad (en vez de hibernar el núcleo), lo que evita errores raros tras actualizar o cambiar hardware.",
+      "risk": "safe",
+      "restart": "reboot",
+      "ops": [
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", "name": "HiberbootEnabled", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
+      "id": "optimize.storage_sense",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Desactivar Storage Sense",
+      "description": "Windows no libera espacio solo borrando temporales ni la papelera.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy", "name": "01", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
+      "id": "optimize.defender_cpu",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Limitar el uso de CPU de Defender al 25 %",
+      "description": "Los análisis de Microsoft Defender no usan más del 25 % del procesador.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan", "name": "AvgCPULoadFactor", "type": "dword", "on": 25, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan", "name": "ScanAvgCPULoadFactor", "type": "dword", "on": 25, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.prefer_ipv4",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Priorizar IPv4 sobre IPv6",
+      "description": "Windows prefiere conexiones IPv4 cuando hay las dos. IPv6 sigue habilitado.",
+      "risk": "moderate",
+      "restart": "reboot",
+      "ops": [
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters", "name": "DisabledComponents", "type": "dword", "on": 32, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.core_isolation",
+      "category": "optimize",
+      "section": "Rendimiento",
+      "title": "Desactivar el aislamiento del núcleo (HVCI)",
+      "description": "Apaga la integridad de memoria: más rendimiento en algunos juegos, pero menos protección contra malware que ataca al núcleo.",
+      "risk": "advanced",
+      "restart": "reboot",
+      "ops": [
+        {"reg": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity", "name": "Enabled", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
       "id": "optimize.hags",
       "category": "gaming",
       "section": "Rendimiento en juegos",
@@ -862,6 +1573,57 @@
       "ops": [
         { "reg": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile", "name": "NetworkThrottlingIndex", "type": "dword", "on": 4294967295, "off": 10 },
         { "reg": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile", "name": "SystemResponsiveness", "type": "dword", "on": 10, "off": 20 }
+      ]
+    },
+    {
+      "id": "optimize.mpo",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Desactivar Multiplane Overlay (MPO)",
+      "description": "Evita parpadeos y pantallas negras en algunos drivers de video al jugar o ver video.",
+      "risk": "moderate",
+      "restart": "reboot",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\Dwm", "name": "OverlayTestMode", "type": "dword", "on": 5, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.fullscreen_optimizations",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Sin optimizaciones de pantalla completa",
+      "description": "Los juegos en pantalla completa se ejecutan sin la capa de optimización de Windows.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\System\\GameConfigStore", "name": "GameDVR_DXGIHonorFSEWindowsCompatible", "type": "dword", "on": 1, "off": 0}
+      ]
+    },
+    {
+      "id": "optimize.windowed_optimizations",
+      "category": "gaming",
+      "section": "Rendimiento en juegos",
+      "title": "Sin optimizaciones para juegos en ventana",
+      "description": "Los juegos en ventana no pasan por la mejora de presentación de DirectX. Reemplaza tu ajuste global de DirectX; al revertir se restaura el anterior.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences", "name": "DirectXUserGlobalSettings", "type": "sz", "on": "SwapEffectUpgradeEnable=0;", "off": null}
+      ]
+    },
+    {
+      "id": "optimize.game_bar",
+      "category": "gaming",
+      "section": "Xbox y capturas",
+      "title": "Desactivar la Xbox Game Bar",
+      "description": "Apaga la Game Bar, su panel de bienvenida y la captura de apps por política.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR", "name": "AllowGameDVR", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "name": "AppCaptureEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\GameBar", "name": "UseNexusForGameBarEnabled", "type": "dword", "on": 0, "off": 1},
+        {"reg": "HKCU\\SOFTWARE\\Microsoft\\GameBar", "name": "ShowStartupPanel", "type": "dword", "on": 0, "off": 1}
       ]
     },
     {
@@ -925,6 +1687,99 @@
       ]
     },
     {
+      "id": "optimize.defer_feature_updates",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "Posponer las actualizaciones de características 1 año",
+      "description": "Las versiones grandes de Windows llegan un año después; las de seguridad siguen igual.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings", "name": "BranchReadinessLevel", "type": "dword", "on": 20, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings", "name": "DeferFeatureUpdatesPeriodInDays", "type": "dword", "on": 365, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.metered_updates",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "No descargar actualizaciones con conexión medida",
+      "description": "Windows Update no baja nada solo cuando la conexión está marcada como medida.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings", "name": "AllowAutoWindowsUpdateDownloadOverMeteredNetwork", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.driver_search_order",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "No buscar drivers en Windows Update",
+      "description": "Al conectar un dispositivo, Windows no busca su driver en Windows Update.",
+      "risk": "moderate",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DriverSearching", "name": "SearchOrderConfig", "type": "dword", "on": 0, "off": 1}
+      ]
+    },
+    {
+      "id": "optimize.no_auto_updates",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "Desactivar las actualizaciones automáticas (política)",
+      "description": "Windows deja de buscar e instalar actualizaciones solo. Te quedás sin parches de seguridad hasta que lo reviertas.",
+      "risk": "advanced",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "name": "NoAutoUpdate", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "name": "AUOptions", "type": "dword", "on": 1, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.update_services",
+      "category": "updates",
+      "section": "Windows Update",
+      "title": "Apagar los servicios de Windows Update",
+      "description": "Deshabilita Windows Update, el orquestador de actualizaciones y BITS. Otras apps que usan BITS (como la Store) dejan de actualizar.",
+      "risk": "advanced",
+      "restart": "reboot",
+      "ops": [
+        {"service": "wuauserv", "on": "disabled", "off": "manual"},
+        {"service": "UsoSvc", "on": "disabled", "off": "auto"},
+        {"service": "BITS", "on": "disabled", "off": "manual"}
+      ]
+    },
+    {
+      "id": "optimize.adobe_updates",
+      "category": "updates",
+      "section": "Apps de terceros",
+      "title": "Adobe: sin actualizaciones automáticas",
+      "description": "Apaga los servicios del actualizador de Adobe y la tarea de actualización de Acrobat.",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\AdobeARMservice",
+      "ops": [
+        {"service": "AdobeARMservice", "on": "disabled", "off": "manual"},
+        {"service": "adobeupdateservice", "on": "disabled", "off": "manual"},
+        {"task": "\\Adobe Acrobat Update Task", "on": "disabled"}
+      ]
+    },
+    {
+      "id": "optimize.google_updates",
+      "category": "updates",
+      "section": "Apps de terceros",
+      "title": "Google: sin actualizaciones automáticas",
+      "description": "Apaga los servicios del actualizador de Google (Chrome y otros).",
+      "risk": "safe",
+      "restart": "none",
+      "when": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\gupdate",
+      "ops": [
+        {"service": "gupdate", "on": "disabled", "off": "manual"},
+        {"service": "gupdatem", "on": "disabled", "off": "manual"}
+      ]
+    },
+    {
       "id": "optimize.edge_debloat",
       "category": "optimize",
       "section": "Microsoft Edge",
@@ -955,6 +1810,49 @@
       "ops": [
         { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "StartupBoostEnabled", "type": "dword", "on": 0, "off": null },
         { "reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "BackgroundModeEnabled", "type": "dword", "on": 0, "off": null }
+      ]
+    },
+    {
+      "id": "optimize.edge_privacy",
+      "category": "optimize",
+      "section": "Microsoft Edge",
+      "title": "Edge: más políticas de privacidad y menos promociones",
+      "description": "Apaga colecciones, seguimiento, widgets, billetera de criptomonedas, pestañas promocionales y la barra de Copilot, además de pedir «No rastrear».",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "EdgeEnhanceImagesEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "ConfigureDoNotTrack", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "AlternateErrorPagesEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "EdgeCollectionsEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "EdgeFollowEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "MicrosoftEdgeInsiderPromotionEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "RelatedMatchesCloudServiceEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "WebWidgetAllowed", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "MetricsReportingEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "BingAdsSuppression", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "NewTabPageHideDefaultTopSites", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "PromotionalTabsEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "SendSiteInfoToImproveServices", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "EdgeAssetDeliveryServiceEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "CryptoWalletEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "WalletDonationEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", "name": "CopilotPageAction", "type": "dword", "on": 0, "off": null}
+      ]
+    },
+    {
+      "id": "optimize.brave_debloat",
+      "category": "optimize",
+      "section": "Brave",
+      "title": "Brave más limpio",
+      "description": "Desactiva Brave Rewards, la billetera, el chat con IA y el envío de estadísticas de uso.",
+      "risk": "safe",
+      "restart": "none",
+      "ops": [
+        {"reg": "HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave", "name": "BraveRewardsDisabled", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave", "name": "BraveWalletDisabled", "type": "dword", "on": 1, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave", "name": "BraveAIChatEnabled", "type": "dword", "on": 0, "off": null},
+        {"reg": "HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave", "name": "BraveStatsPingEnabled", "type": "dword", "on": 0, "off": null}
       ]
     },
 
