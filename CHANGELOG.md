@@ -3,6 +3,27 @@
 Todos los cambios importantes de LiquidControl. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y las versiones, [SemVer](https://semver.org/lang/es/).
 
+## [0.5.3] - 2026-10-11
+
+### Agregado
+
+- **61 ajustes nuevos** en el catálogo, tomados del inventario de WinScript y ubicados en la sección que les
+  corresponde, cada uno con su activación, su reversión y el valor anterior guardado:
+  - *Privacidad*: más canales de telemetría y de informes de errores, servicios y tareas de diagnóstico,
+    contenido promocionado y publicidad por política, Spotlight, sincronización de ajustes con la nube, permisos
+    de apps (archivos, radios, capturas, IA, teléfono, dispositivos de confianza), voz en la nube, búsqueda sin
+    web ni ubicación, Cortana, Copilot completo y telemetría de Office, Visual Studio, Media Player, CCleaner y NVIDIA.
+  - *Escritorio*: centro de notificaciones, Widgets por política, «Inicio» del Explorador, pantalla azul
+    detallada, cifrado automático de BitLocker, WPBT y, en «Inicio de sesión», cámara de la pantalla de bloqueo,
+    mensajes detallados, Num Lock y biometría.
+  - *Optimización*: inicio rápido, Storage Sense, CPU de Defender, IPv4 sobre IPv6, aislamiento del núcleo,
+    políticas extra de Edge y de Brave.
+  - *Juegos*: MPO, optimizaciones de pantalla completa y de juegos en ventana, Xbox Game Bar.
+  - *Actualizaciones*: posponer 1 año, conexión medida, drivers, política de actualizaciones automáticas,
+    servicios de Windows Update y actualizadores de Adobe y Google.
+- 28 apps más en la lista de apps preinstaladas que se pueden quitar (Whiteboard, Skype, 3D Builder, Bing
+  Finanzas, Netflix, etc.).
+
 ## [0.5.2] - 2026-10-11
 
 ### Cambiado
