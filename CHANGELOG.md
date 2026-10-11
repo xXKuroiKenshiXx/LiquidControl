@@ -3,6 +3,29 @@
 Todos los cambios importantes de LiquidControl. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y las versiones, [SemVer](https://semver.org/lang/es/).
 
+## [0.5.2] - 2026-10-11
+
+### Cambiado
+
+- El color de acento **Vidrio líquido** ahora es un **celeste translúcido**: un reflejo blanco arriba y el
+  celeste que se ve a través del botón, en vez de un cian intenso y sólido. Texto, interruptores, controles
+  deslizantes, la barra lateral y la muestra del selector usan el mismo vidrio; en tema claro el texto de los
+  botones pasa a un azul oscuro para que se lea.
+
+### Arreglado
+
+- Una **línea blanca pegada al borde de arriba de la ventana** (la fila que Windows pinta para dibujar la
+  sombra de una ventana sin marco): ahora se saca el borde de DWM y la forma de la ventana arranca debajo de esa
+  fila.
+
+### Agregado
+
+- Escritorio → Menú Inicio: **Desactivar el menú Inicio de Windows**. En vez de un nombre de carpeta fijo,
+  busca en `SystemApps` de cada PC la carpeta que trae `StartMenuExperienceHost.exe`, cierra el programa y la
+  renombra con `.old` (tomando antes su propiedad y devolviéndosela a TrustedInstaller al revertir). Pide
+  administrador, es de riesgo avanzado y se revierte desde la misma app. Nueva operación `systemApp` en el
+  catálogo de ajustes, que identifica la app por su ejecutable.
+
 ## [0.5.0] - 2026-09-29
 
 ### Cambiado

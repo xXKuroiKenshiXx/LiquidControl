@@ -2585,7 +2585,7 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "liquidcontrol"
-version = "0.5.0"
+version = "0.5.2"
 dependencies = [
  "liquidcontrol-core",
  "log",
@@ -2599,7 +2599,7 @@ dependencies = [
 
 [[package]]
 name = "liquidcontrol-core"
-version = "0.5.0"
+version = "0.5.2"
 dependencies = [
  "base64",
  "log",
