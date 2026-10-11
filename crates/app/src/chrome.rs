@@ -39,6 +39,8 @@ pub fn select_backend() -> Result<(), slint::PlatformError> {
             attributes
                 .with_undecorated_shadow(true)
                 .with_corner_preference(CornerPreference::Round)
+                // Sin borde de DWM: la línea blanca pegada arriba de la ventana.
+                .with_border_color(None)
                 .with_window_icon(icon.clone())
                 .with_taskbar_icon(icon)
                 // Arranca oculta: se muestra recién cuando ya tiene el zoom y

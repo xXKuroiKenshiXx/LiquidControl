@@ -10,7 +10,7 @@ use core::ffi::c_void;
 
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Dwm::{
-    DWM_WINDOW_CORNER_PREFERENCE, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND, DWMWCP_ROUND,
+    DWM_WINDOW_CORNER_PREFERENCE, DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND, DWMWCP_ROUND,
     DwmSetWindowAttribute,
 };
 use windows::Win32::Graphics::Gdi::{
@@ -39,6 +39,22 @@ fn set_corner_preference(hwnd: HWND, preference: DWM_WINDOW_CORNER_PREFERENCE) {
     }
 }
 
+/// Sin borde de DWM. winit deja la fila de arriba de la ventana (1 px) fuera
+/// del área de cliente para que Windows dibuje la sombra; esa fila la pinta
+/// DWM con el color de borde del sistema, y en algunos equipos queda como una
+/// línea blanca pegada al borde de arriba. La app dibuja su propio borde.
+fn hide_border(hwnd: HWND) {
+    const DWMWA_COLOR_NONE: u32 = 0xFFFF_FFFE;
+    unsafe {
+        let _ = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_BORDER_COLOR,
+            &DWMWA_COLOR_NONE as *const _ as *const c_void,
+            size_of::<u32>() as u32,
+        );
+    }
+}
+
 /// `radius`: radio de las esquinas en píxeles físicos; `None` vuelve a las nativas.
 /// Hay que llamarla de nuevo cada vez que cambia el tamaño de la ventana.
 pub fn set_corners(hwnd: isize, radius: Option<i32>) {
@@ -46,6 +62,7 @@ pub fn set_corners(hwnd: isize, radius: Option<i32>) {
         return;
     }
     let hwnd = HWND(hwnd as *mut c_void);
+    hide_border(hwnd);
     match radius {
         Some(radius) => {
             let mut rect = RECT::default();
@@ -56,7 +73,9 @@ pub fn set_corners(hwnd: isize, radius: Option<i32>) {
             let diameter = radius.max(0) * 2;
             set_corner_preference(hwnd, DWMWCP_DONOTROUND);
             unsafe {
-                let region = CreateRoundRectRgn(0, 0, width + 1, height + 1, diameter, diameter);
+                // Arranca en y = 1: la fila de arriba es la que pinta DWM (ver
+                // `hide_border`), y el área de cliente de winit empieza ahí.
+                let region = CreateRoundRectRgn(0, 1, width + 1, height + 1, diameter, diameter);
                 // La ventana se queda con la región: no hay que liberarla.
                 SetWindowRgn(hwnd, Some(region), true);
             }
