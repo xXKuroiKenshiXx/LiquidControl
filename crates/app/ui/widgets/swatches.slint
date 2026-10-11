@@ -21,15 +21,25 @@ export component Swatch {
 
     Rectangle {
         border-radius: 10px;
+        // Vidrio: celeste translúcido con reflejo y borde claro, sin el color
+        // sólido de las otras muestras.
         background: !root.glass ? root.tone : @linear-gradient(180deg,
-            root.tone.mix(#ffffff, Theme.dark ? 0.32 : 0.55) 0%,
-            root.tone 52%,
-            root.tone.mix(#000000, Theme.dark ? 0.35 : 0.12) 100%);
-        border-width: 0.5px;
-        border-color: #00000033;
+            rgba(255, 255, 255, Theme.dark ? 0.55 : 0.90) 0%,
+            root.tone.with-alpha(0.70) 48%,
+            root.tone.with-alpha(0.38) 100%);
+        border-width: root.glass ? 1px : 0.5px;
+        border-color: root.glass ? rgba(255, 255, 255, Theme.dark ? 0.55 : 0.85) : #00000033;
         transform-scale-x: touch.pressed ? 0.82 : touch.has-hover ? 1.15 : 1;
         transform-scale-y: touch.pressed ? 0.82 : touch.has-hover ? 1.15 : 1;
         animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        if root.glass: Rectangle {
+            x: 4px;
+            y: 2px;
+            width: 10px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.55);
+        }
         if root.selected: Rectangle {
             x: -3.5px;
             y: -3.5px;

@@ -12,21 +12,21 @@ export global Theme {
     in-out property <color> on-accent: #ffffff;
     // "Vidrio líquido" como acento (Ajustes de la app → Apariencia → Color de
     // acento): en vez de un color plano, los rellenos y los estados de hover
-    // de los botones usan un vidrio teñido con `accent`, con el mismo
-    // lenguaje visual (reflejo arriba, sombra al pie) que ya usan las
-    // superficies de vidrio de la app.
+    // de los botones usan un vidrio celeste translúcido (reflejo blanco arriba,
+    // el color se ve a través y se apaga hacia abajo), con el mismo lenguaje
+    // visual que ya usan las superficies de vidrio de la app.
     in-out property <bool> accent-glass: false;
-    // Relleno sólido de un botón/interruptor primario: el acento plano, o el
-    // vidrio teñido si se eligió esa opción.
+    // Relleno de un botón/interruptor primario: el acento plano, o el vidrio
+    // translúcido si se eligió esa opción.
     out property <brush> accent-brush: !root.accent-glass ? root.accent : @linear-gradient(180deg,
-        root.accent.mix(#ffffff, root.dark ? 0.32 : 0.55) 0%,
-        root.accent 52%,
-        root.accent.mix(#000000, root.dark ? 0.35 : 0.12) 100%);
-    // Versión translúcida: el "lavado" de hover/presionado de un botón de texto.
+        rgba(255, 255, 255, root.dark ? 0.42 : 0.80) 0%,
+        root.accent.with-alpha(root.dark ? 0.62 : 0.72) 46%,
+        root.accent.with-alpha(root.dark ? 0.38 : 0.46) 100%);
+    // Versión más suave: el "lavado" de hover/presionado de un botón de texto.
     out property <brush> accent-wash: !root.accent-glass ? root.accent.with-alpha(0.16) : @linear-gradient(180deg,
-        root.accent.with-alpha(0.05) 0%,
-        root.accent.with-alpha(0.30) 52%,
-        root.accent.with-alpha(0.14) 100%);
+        rgba(255, 255, 255, root.dark ? 0.16 : 0.45) 0%,
+        root.accent.with-alpha(0.30) 50%,
+        root.accent.with-alpha(0.12) 100%);
     // Intensidad de las animaciones: 0 = ninguna, 1 = normal, 1,8 = máximas.
     in-out property <float> motion: 1;
     // Intensidad del Liquid Glass: 0 = sin vidrio, 1 = normal, 1,5 = exagerado.

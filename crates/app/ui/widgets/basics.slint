@@ -152,6 +152,8 @@ export component Button {
         animate transform-scale-x, transform-scale-y { duration: Theme.quick; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
         Rectangle {
             border-radius: self.height / 2;
+            border-width: root.glassy && root.primary ? 1px : 0px;
+            border-color: rgba(255, 255, 255, Theme.dark ? 0.35 : 0.75);
             background: root.primary ? Theme.accent-brush
                 : root.glassy ? Theme.accent-wash
                 : touch.pressed && root.active ? root.fg.with-alpha(0.16)

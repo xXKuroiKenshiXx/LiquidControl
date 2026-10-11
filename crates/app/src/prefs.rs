@@ -106,7 +106,7 @@ pub const ACCENTS: [(&str, u32, u32); 9] = [
     ("yellow", 0xffcc00, 0xffd60a),
     ("green", 0x28cd41, 0x30d158),
     ("graphite", 0x8e8e93, 0x98989d),
-    ("glass", 0x32ade6, 0x64d2ff),
+    ("glass", 0x2d9fe0, 0x56bff5),
 ];
 
 thread_local! {
@@ -157,8 +157,15 @@ pub fn apply(app: &AppWindow) {
     let theme = app.global::<Theme>();
     theme.set_dark(dark);
     theme.set_accent(accent);
-    theme.set_accent_glass(prefs.accent == "glass");
-    theme.set_on_accent(contrast_color(accent));
+    let glass = prefs.accent == "glass";
+    theme.set_accent_glass(glass);
+    // El vidrio es translúcido: en oscuro el texto va en blanco; en claro, en
+    // un azul muy oscuro (blanco sobre celeste claro no se lee).
+    theme.set_on_accent(match (glass, dark) {
+        (true, true) => Color::from_rgb_u8(255, 255, 255),
+        (true, false) => Color::from_rgb_u8(8, 48, 74),
+        (false, _) => contrast_color(accent),
+    });
     theme.set_motion(prefs.motion);
     theme.set_glass(prefs.glass);
     app.global::<App>().set_mac_controls(prefs.window_controls == WindowControls::Mac);

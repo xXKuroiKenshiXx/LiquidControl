@@ -23,7 +23,8 @@ component SidebarItem {
         border-radius: 9px;
         // Seleccionado: cápsula de acento con reflejo de vidrio y un leve resplandor.
         background: root.selected
-            ? @linear-gradient(180deg, Theme.accent.brighter(0.12 * Theme.glass) 0%, Theme.accent 100%)
+            ? (Theme.accent-glass ? Theme.accent-brush
+                : @linear-gradient(180deg, Theme.accent.brighter(0.12 * Theme.glass) 0%, Theme.accent 100%))
             : touch.has-hover ? Theme.hover : transparent;
         drop-shadow-blur: root.selected ? 6px * Theme.glass : 0px;
         drop-shadow-color: root.selected ? Theme.accent.with-alpha(0.45) : transparent;
@@ -169,7 +170,7 @@ export component Sidebar inherits Rectangle {
             if root.query == "": Rectangle {
                     height: 50px;
                     border-radius: 12px;
-                    background: Nav.pane == "account" ? Theme.accent : account-touch.has-hover ? Theme.hover : transparent;
+                    background: Nav.pane == "account" ? Theme.accent-brush : account-touch.has-hover ? Theme.hover : transparent;
                     HorizontalLayout {
                         padding-left: 8px;
                         padding-right: 8px;
