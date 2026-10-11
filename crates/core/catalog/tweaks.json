@@ -608,6 +608,18 @@
       ]
     },
     {
+      "id": "desktop.disable_start_menu",
+      "category": "desktop",
+      "section": "Menú Inicio",
+      "title": "Desactivar el menú Inicio de Windows",
+      "description": "El botón Inicio y la tecla Windows dejan de abrir el menú (útil si usás otro, como Open-Shell o StartAllBack). Renombra la carpeta del sistema que lo ejecuta, y se revierte desde acá mismo. Una actualización de Windows puede volver a dejarlo como estaba.",
+      "risk": "advanced",
+      "restart": "none",
+      "ops": [
+        { "systemApp": "StartMenuExperienceHost.exe" }
+      ]
+    },
+    {
       "id": "desktop.show_extensions",
       "category": "desktop",
       "section": "Explorador de archivos",

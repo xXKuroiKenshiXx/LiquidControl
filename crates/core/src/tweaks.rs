@@ -22,7 +22,7 @@ use crate::error::{AppError, AppResult};
 use crate::paths::{data_dir, strip_bom, write_atomic};
 use crate::util::services::{self, START_AUTO, START_DISABLED, START_MANUAL};
 use crate::util::win::{broadcast_setting_change, is_elevated};
-use crate::util::{com, reg, tasks};
+use crate::util::{com, reg, sysapp, tasks};
 
 const CATALOG_JSON: &str = include_str!("../catalog/tweaks.json");
 
@@ -132,6 +132,13 @@ enum Op {
         task: String,
         on: TaskState,
     },
+    /// App del sistema que se desactiva renombrando su carpeta de `SystemApps`:
+    /// "activado" = desactivada. Se la identifica por su ejecutable y la carpeta
+    /// se busca en cada PC (su nombre cambia entre versiones de Windows).
+    SystemApp {
+        #[serde(rename = "systemApp")]
+        exe: String,
+    },
 }
 
 fn catalog() -> AppResult<&'static Catalog> {
@@ -188,6 +195,7 @@ enum Previous {
     Key { path: String, existed: bool },
     Service { name: String, start: u32 },
     Task { path: String, enabled: bool },
+    SystemApp { exe: String, disabled: bool },
 }
 
 type Journal = HashMap<String, Vec<Previous>>;
@@ -213,6 +221,7 @@ fn op_state(op: &Op) -> Option<bool> {
         Op::RegKey { key, on } => Some(reg::key_exists(key) == *on),
         Op::Service { service, on, .. } => services::start_type(service).map(|start| start == on.code()),
         Op::Task { task, on } => tasks::enabled(task).map(|enabled| enabled == (*on == TaskState::Enabled)),
+        Op::SystemApp { exe } => sysapp::is_disabled(exe),
     }
 }
 
@@ -237,7 +246,7 @@ fn needs_admin(def: &TweakDef) -> bool {
     def.ops.iter().any(|op| match op {
         Op::RegValue { reg: path, .. } => reg::is_machine(path),
         Op::RegKey { key, .. } => reg::is_machine(key),
-        Op::Service { .. } | Op::Task { .. } => true,
+        Op::Service { .. } | Op::Task { .. } | Op::SystemApp { .. } => true,
     })
 }
 
@@ -298,6 +307,11 @@ fn describe(op: &Op) -> String {
                 if *on == TaskState::Enabled { "habilitada" } else { "deshabilitada" }
             )
         }
+        Op::SystemApp { exe } => format!(
+            "Busca en SystemApps (dentro de la carpeta de Windows) la carpeta que trae {exe}, cierra el programa y \
+             la renombra agregándole «.old», así Windows no lo ejecuta. Al revertir: vuelve a su nombre y a su \
+             propietario original."
+        ),
     }
 }
 
@@ -329,6 +343,9 @@ fn capture(op: &Op) -> Option<Previous> {
             services::start_type(service).map(|start| Previous::Service { name: service.clone(), start })
         }
         Op::Task { task, .. } => tasks::enabled(task).map(|enabled| Previous::Task { path: task.clone(), enabled }),
+        Op::SystemApp { exe } => {
+            sysapp::is_disabled(exe).map(|disabled| Previous::SystemApp { exe: exe.clone(), disabled })
+        }
     }
 }
 
@@ -339,6 +356,7 @@ fn apply_op(op: &Op) -> AppResult<()> {
         Op::RegKey { key, on: false } => reg::delete_tree(key),
         Op::Service { service, on, .. } => services::set_start_type(service, on.code()),
         Op::Task { task, on } => tasks::set_enabled(task, *on == TaskState::Enabled),
+        Op::SystemApp { exe } => sysapp::disable(exe),
     }
 }
 
@@ -352,6 +370,7 @@ fn revert_op(op: &Op) -> AppResult<()> {
         Op::RegKey { key, on: false } => reg::create_key(key),
         Op::Service { service, off, .. } => services::set_start_type(service, off.code()),
         Op::Task { task, on } => tasks::set_enabled(task, *on != TaskState::Enabled),
+        Op::SystemApp { exe } => sysapp::enable(exe),
     }
 }
 
@@ -363,6 +382,8 @@ fn restore(previous: &Previous) -> AppResult<()> {
         Previous::Key { path, existed: false } => reg::delete_tree(path),
         Previous::Service { name, start } => services::set_start_type(name, *start),
         Previous::Task { path, enabled } => tasks::set_enabled(path, *enabled),
+        Previous::SystemApp { exe, disabled: true } => sysapp::disable(exe),
+        Previous::SystemApp { exe, disabled: false } => sysapp::enable(exe),
     }
 }
 
@@ -405,6 +426,9 @@ fn belongs_to(def: &TweakDef, previous: &Previous) -> bool {
             service.eq_ignore_ascii_case(name) && [START_AUTO, START_MANUAL, START_DISABLED].contains(start)
         }
         (Op::Task { task, .. }, Previous::Task { path, .. }) => task.eq_ignore_ascii_case(path),
+        (Op::SystemApp { exe }, Previous::SystemApp { exe: previous_exe, .. }) => {
+            exe.eq_ignore_ascii_case(previous_exe)
+        }
         _ => false,
     })
 }
@@ -556,12 +580,18 @@ mod tests {
             );
             assert!(!def.ops.is_empty(), "{} no tiene operaciones", def.id);
             for op in &def.ops {
-                if let Op::RegValue { reg: path, kind, on, off, .. } = op {
-                    reg::split(path).expect("ruta de registro válida");
-                    RegData::from_json(*kind, on).expect("valor on válido");
-                    if let Some(off) = off {
-                        RegData::from_json(*kind, off).expect("valor off válido");
+                match op {
+                    Op::RegValue { reg: path, kind, on, off, .. } => {
+                        reg::split(path).expect("ruta de registro válida");
+                        RegData::from_json(*kind, on).expect("valor on válido");
+                        if let Some(off) = off {
+                            RegData::from_json(*kind, off).expect("valor off válido");
+                        }
                     }
+                    Op::SystemApp { exe } => {
+                        assert!(sysapp::valid_exe(exe), "ejecutable inválido en {}", def.id);
+                    }
+                    _ => {}
                 }
             }
         }

@@ -57,6 +57,16 @@ fn motor_de_ajustes() {
             count(tweaks::TweakState::Off)
         );
     }
+    // Solo lectura: la carpeta del menú Inicio se tiene que encontrar en esta PC.
+    let start = tweaks::list("desktop")
+        .expect("lista de ajustes")
+        .into_iter()
+        .find(|t| t.id == "desktop.disable_start_menu")
+        .expect("el ajuste del menú Inicio está en el catálogo");
+    println!("   menú Inicio de Windows: {:?} (admin: {})", start.state, start.admin);
+    for line in &start.details {
+        println!("      {line}");
+    }
 }
 
 #[test]
